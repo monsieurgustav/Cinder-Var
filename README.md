@@ -1,4 +1,4 @@
-# Cinder-LiveJsonParam
+# Cinder-Var
 A basic-live-cinder-json-saved-variable system using _Simon Geilfus'_ Watchdog as a submodule.
 
 ```
