@@ -1,20 +1,15 @@
 # Cinder-LiveJsonParam
-A basic-live-cinder-json-saved-parameters system using _Simon Geilfus'_ Watchdog as a submodule.
+A basic-live-cinder-json-saved-variable system using _Simon Geilfus'_ Watchdog as a submodule.
 
 ```
-using namespace live;
-
-Param<float> mRadius;
-[...]
-JsonBag::add( &mRadius, "radius" );
-JsonBag::add( &mRadius, "radius",  []() { app::console() << "Updated radius!" << endl; } );
+ci::Var<float> mRadius{ 1.0f, "radius };
 ```
-In `assets/`, the parameter values are stored as follows in the _live_params.json_ file.
+In `assets/`, the parameter values are stored as follows in the _live_vars.json_ file.
 
 ```
 {
-   "params" : {
-      "radius" : "0",
+   "default" : {
+      "radius" : "1.0",
    }
 }
 ```
