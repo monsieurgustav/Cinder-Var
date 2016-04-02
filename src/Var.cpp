@@ -27,6 +27,11 @@ JsonBag::JsonBag()
 
 void JsonBag::emplace( VarBase* var, const std::string &name, const std::string groupName )
 {
+	if( mItems[groupName].count( name ) ) {
+		CI_LOG_E( "Bag already contains '" + name + "' in group '" + groupName + "', not adding." );
+		return;
+	}
+	
 	mItems[groupName].emplace( name, var );
 	var->setOwner( this );
 }

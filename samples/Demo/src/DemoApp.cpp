@@ -11,8 +11,8 @@ using namespace ci;
 using namespace ci::app;
 
 struct Disk {
-	Disk()
-	: mRadius{ 0.0f, "radius", "disk", []() { app::console() << "Updated disk radius!" << std::endl; } }
+	Disk( const std::string& varGroup )
+	: mRadius{ 0.0f, "radius", varGroup, []() { app::console() << "Updated disk radius!" << std::endl; } }
 	, mColor{ Color{}, "color", "disk" }
 	, mPos{ app::getWindowSize() / 2 }
 	{ }
@@ -35,7 +35,8 @@ public:
 };
 
 DemoApp::DemoApp()
-: mPerlinScale( 0.001f, "scale", "perlin" )
+: mDisk{ "disk" }
+, mPerlinScale( 0.001f, "scale", "perlin" )
 , mPerlinAmplitude( 0.5f, "amplitude", "perlin" )
 , mPerlinSpeed( 1.0f, "speed", "perlin" )
 , mFriction( 0.949999988f, "friction" )
