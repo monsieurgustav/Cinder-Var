@@ -1,18 +1,17 @@
-#include "LiveParam.h"
+#include "Var.h"
 #include "cinder/Filesystem.h"
 #include <fstream>
 
 #include "cinder/Quaternion.h"
 
 using namespace ci;
-using namespace live;
 
 std::unique_ptr<JsonBag> JsonBag::mInstance = nullptr;
 std::once_flag JsonBag::mOnceFlag;
 
 JsonBag::JsonBag()
 {
-	mJsonFilePath = app::getAssetPath("") / "live_params.json";
+	mJsonFilePath = app::getAssetPath("") / "live_vars.json";
 	
 	// Create json file if it doesn't already exist.
 	if( ! fs::exists( mJsonFilePath ) ) {
@@ -26,16 +25,46 @@ JsonBag::JsonBag()
 	} );
 }
 
+void JsonBag::emplace( VarBase* var, const std::string &name, const std::string groupName )
+{
+	mItems[groupName].emplace( name, var );
+	var->setOwner( this );
+}
+
+void JsonBag::removeTarget( void *target )
+{
+	if( ! target )
+		return;
+	
+	for( auto& kv : mItems ) {
+		const auto& groupName = kv.first;
+		auto& group = kv.second;
+		
+		for( auto it = group.cbegin(); it != group.cend(); ++it ) {
+			if( it->second->getTarget() == target ) {
+				
+				group.erase( it );
+				
+				if( group.empty() )
+					mItems.erase( groupName );
+				
+				return;
+			}
+		}
+	}
+	CI_LOG_E( "Target not found." );
+}
+
 void JsonBag::save() const
 {
 	JsonTree doc;
-	JsonTree params = JsonTree::makeArray( "params" );
-	
-	for( const auto& item : mItems ) {
-		item.second->save( item.first, &params );
+	for( auto& group : mItems ) {
+		JsonTree jsonGroup = JsonTree::makeArray( group.first );
+		for( const auto& item : group.second ) {
+			item.second->save( item.first, &jsonGroup );
+		}
+		doc.pushBack( jsonGroup );
 	}
-	
-	doc.pushBack( params );
 	doc.write( writeFile( mJsonFilePath ), JsonTree::WriteOptions() );
 }
 
@@ -47,13 +76,22 @@ void JsonBag::load()
 	
 	try {
 		JsonTree doc( loadFile( mJsonFilePath ) );
-		JsonTree params( doc.getChild( "params" ) );
-		for( JsonTree::ConstIter item = params.begin(); item != params.end(); ++item ) {
-			const auto& name = item->getKey();
-			if( mItems.count( name ) ) {
-				mItems.at( name )->load( name, item );
-			} else {
-				CI_LOG_E( "No item named " + name );
+		for( JsonTree::ConstIter groupIt = doc.begin(); groupIt != doc.end(); ++groupIt ) {
+			auto& jsonGroup = *groupIt;
+			auto groupName = jsonGroup.getKey();
+			if( mItems.count( groupName ) ) {
+				auto groupItems = mItems.at( groupName );
+				for( JsonTree::ConstIter item = jsonGroup.begin(); item != jsonGroup.end(); ++item ) {
+					const auto& name = item->getKey();
+					if( groupItems.count( name ) ) {
+						groupItems.at( name )->load( name, item );
+					} else {
+						CI_LOG_E( "No item named " + name );
+					}
+				}
+			}
+			else {
+				CI_LOG_E( "No group named " + groupName );
 			}
 		}
 	}
@@ -62,21 +100,7 @@ void JsonBag::load()
 	}
 }
 
-void JsonBag::removeTarget( void *target )
-{
-	if( ! target )
-		return;
-	
-	for( auto it = mItems.cbegin(); it != mItems.cend(); ++it ) {
-		if( it->second->getTarget() == target ) {
-			mItems.erase( it );
-			return;
-		}
-	}
-	CI_LOG_E( "Target not found." );
-}
-
-JsonBag* live::bag()
+JsonBag* ci::bag()
 {
 	std::call_once(JsonBag::mOnceFlag,
 				   [] {
@@ -87,25 +111,25 @@ JsonBag* live::bag()
 }
 
 template<>
-void Param<bool>::save( const std::string& name, ci::JsonTree* tree ) const
+void Var<bool>::save( const std::string& name, ci::JsonTree* tree ) const
 {
 	tree->addChild( ci::JsonTree( name, ci::toString( mValue ) ) );
 }
 
 template<>
-void Param<int>::save( const std::string& name, ci::JsonTree* tree ) const
+void Var<int>::save( const std::string& name, ci::JsonTree* tree ) const
 {
 	tree->addChild( ci::JsonTree( name, ci::toString( mValue ) ) );
 }
 
 template<>
-void Param<float>::save( const std::string& name, ci::JsonTree* tree ) const
+void Var<float>::save( const std::string& name, ci::JsonTree* tree ) const
 {
 	tree->addChild( ci::JsonTree( name, ci::toString( mValue ) ) );
 }
 
 template<>
-void Param<glm::vec2>::save( const std::string& name, ci::JsonTree* tree ) const
+void Var<glm::vec2>::save( const std::string& name, ci::JsonTree* tree ) const
 {
 	auto v = ci::JsonTree::makeArray( name );
 	v.pushBack( ci::JsonTree( "x", ci::toString( mValue.x ) ) );
@@ -114,7 +138,7 @@ void Param<glm::vec2>::save( const std::string& name, ci::JsonTree* tree ) const
 }
 
 template<>
-void Param<glm::vec3>::save( const std::string& name, ci::JsonTree* tree ) const
+void Var<glm::vec3>::save( const std::string& name, ci::JsonTree* tree ) const
 {
 	auto v = ci::JsonTree::makeArray( name );
 	v.pushBack( ci::JsonTree( "x", ci::toString( mValue.x ) ) );
@@ -124,7 +148,7 @@ void Param<glm::vec3>::save( const std::string& name, ci::JsonTree* tree ) const
 }
 
 template<>
-void Param<glm::vec4>::save( const std::string& name, ci::JsonTree* tree ) const
+void Var<glm::vec4>::save( const std::string& name, ci::JsonTree* tree ) const
 {
 	auto v = ci::JsonTree::makeArray( name );
 	v.pushBack( ci::JsonTree( "x", ci::toString( mValue.x ) ) );
@@ -135,7 +159,7 @@ void Param<glm::vec4>::save( const std::string& name, ci::JsonTree* tree ) const
 }
 
 template<>
-void Param<glm::quat>::save( const std::string& name, ci::JsonTree* tree ) const
+void Var<glm::quat>::save( const std::string& name, ci::JsonTree* tree ) const
 {
 	auto v = ci::JsonTree::makeArray( name );
 	v.pushBack( ci::JsonTree( "w", ci::toString( mValue.w ) ) );
@@ -147,7 +171,7 @@ void Param<glm::quat>::save( const std::string& name, ci::JsonTree* tree ) const
 }
 
 template<>
-void Param<ci::Color>::save( const std::string& name, ci::JsonTree* tree ) const
+void Var<ci::Color>::save( const std::string& name, ci::JsonTree* tree ) const
 {
 	auto v = ci::JsonTree::makeArray( name );
 	v.pushBack( ci::JsonTree( "r", ci::toString( mValue.r ) ) );
@@ -157,25 +181,25 @@ void Param<ci::Color>::save( const std::string& name, ci::JsonTree* tree ) const
 }
 
 template<>
-void Param<bool>::load( const std::string& name, ci::JsonTree::ConstIter& iter )
+void Var<bool>::load( const std::string& name, ci::JsonTree::ConstIter& iter )
 {
 	update( iter->getValue<bool>() );
 }
 
 template<>
-void Param<int>::load( const std::string& name, ci::JsonTree::ConstIter& iter )
+void Var<int>::load( const std::string& name, ci::JsonTree::ConstIter& iter )
 {
 	update( iter->getValue<int>() );
 }
 
 template<>
-void Param<float>::load( const std::string& name, ci::JsonTree::ConstIter& iter )
+void Var<float>::load( const std::string& name, ci::JsonTree::ConstIter& iter )
 {
 	update( iter->getValue<float>() );
 }
 
 template<>
-void Param<glm::vec2>::load( const std::string& name, ci::JsonTree::ConstIter& iter )
+void Var<glm::vec2>::load( const std::string& name, ci::JsonTree::ConstIter& iter )
 {
 	glm::vec2 v;
 	v.x = iter->getChild( "x" ).getValue<float>();
@@ -184,7 +208,7 @@ void Param<glm::vec2>::load( const std::string& name, ci::JsonTree::ConstIter& i
 }
 
 template<>
-void Param<glm::vec3>::load( const std::string& name, ci::JsonTree::ConstIter& iter )
+void Var<glm::vec3>::load( const std::string& name, ci::JsonTree::ConstIter& iter )
 {
 	glm::vec3 v;
 	v.x = iter->getChild( "x" ).getValue<float>();
@@ -194,7 +218,7 @@ void Param<glm::vec3>::load( const std::string& name, ci::JsonTree::ConstIter& i
 }
 
 template<>
-void Param<glm::vec4>::load( const std::string& name, ci::JsonTree::ConstIter& iter )
+void Var<glm::vec4>::load( const std::string& name, ci::JsonTree::ConstIter& iter )
 {
 	glm::vec4 v;
 	v.x = iter->getChild( "x" ).getValue<float>();
@@ -205,7 +229,7 @@ void Param<glm::vec4>::load( const std::string& name, ci::JsonTree::ConstIter& i
 }
 
 template<>
-void Param<glm::quat>::load( const std::string& name, ci::JsonTree::ConstIter& iter )
+void Var<glm::quat>::load( const std::string& name, ci::JsonTree::ConstIter& iter )
 {
 	glm::quat q;
 	q.w = iter->getChild( "w" ).getValue<float>();
@@ -216,7 +240,7 @@ void Param<glm::quat>::load( const std::string& name, ci::JsonTree::ConstIter& i
 }
 
 template<>
-void Param<ci::Color>::load( const std::string& name, ci::JsonTree::ConstIter& iter )
+void Var<ci::Color>::load( const std::string& name, ci::JsonTree::ConstIter& iter )
 {
 	ci::Color c;
 	c.r = iter->getChild( "r" ).getValue<float>();

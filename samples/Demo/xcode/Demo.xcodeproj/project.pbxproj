@@ -19,7 +19,9 @@
 		8D11072F0486CEB800E47090 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */; };
 		9D90C51ACF08437AAAE1551E /* CinderApp.icns in Resources */ = {isa = PBXBuildFile; fileRef = 1BC5F87CE30C4E848570FD58 /* CinderApp.icns */; };
 		A65E1FCCCA4B4CABBFAA444F /* DemoApp.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AFD3AD9DB9204094BBA89EFD /* DemoApp.cpp */; };
-		B03F2F9B1A5E0681004103D3 /* LiveParam.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B03F2F9A1A5E0681004103D3 /* LiveParam.cpp */; };
+		B03F2F9B1A5E0681004103D3 /* Var.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B03F2F9A1A5E0681004103D3 /* Var.cpp */; };
+		B08C77951CB0510A008B014D /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B08C77941CB0510A008B014D /* IOKit.framework */; };
+		B08C77971CB05111008B014D /* IOSurface.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B08C77961CB05111008B014D /* IOSurface.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -40,10 +42,12 @@
 		5323E6B50EAFCA7E003A9687 /* QTKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QTKit.framework; path = /System/Library/Frameworks/QTKit.framework; sourceTree = "<absolute>"; };
 		8D1107320486CEB800E47090 /* Demo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Demo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AFD3AD9DB9204094BBA89EFD /* DemoApp.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.cpp; name = DemoApp.cpp; path = ../src/DemoApp.cpp; sourceTree = "<group>"; };
-		B03F2F991A5E0681004103D3 /* LiveParam.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LiveParam.h; path = ../../../src/LiveParam.h; sourceTree = "<group>"; };
-		B03F2F9A1A5E0681004103D3 /* LiveParam.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = LiveParam.cpp; path = ../../../src/LiveParam.cpp; sourceTree = "<group>"; };
+		B03F2F991A5E0681004103D3 /* Var.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Var.h; path = ../../../src/Var.h; sourceTree = "<group>"; };
+		B03F2F9A1A5E0681004103D3 /* Var.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Var.cpp; path = ../../../src/Var.cpp; sourceTree = "<group>"; };
 		B03F2F9D1A5E068F004103D3 /* Watchdog.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Watchdog.h; path = ../../../src/Watchdog/include/Watchdog.h; sourceTree = "<group>"; };
 		B03F2F9E1A5ED94F004103D3 /* assets */ = {isa = PBXFileReference; lastKnownFileType = folder; name = assets; path = ../assets; sourceTree = "<group>"; };
+		B08C77941CB0510A008B014D /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
+		B08C77961CB05111008B014D /* IOSurface.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOSurface.framework; path = System/Library/Frameworks/IOSurface.framework; sourceTree = SDKROOT; };
 		D6AB202ACB9840EEBC078536 /* Demo_Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = "\"\""; path = Demo_Prefix.pch; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -52,6 +56,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B08C77971CB05111008B014D /* IOSurface.framework in Frameworks */,
+				B08C77951CB0510A008B014D /* IOKit.framework in Frameworks */,
 				006D720419952D00008149E2 /* AVFoundation.framework in Frameworks */,
 				006D720519952D00008149E2 /* CoreMedia.framework in Frameworks */,
 				8D11072F0486CEB800E47090 /* Cocoa.framework in Frameworks */,
@@ -154,6 +160,8 @@
 		29B97323FDCFA39411CA2CEA /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				B08C77961CB05111008B014D /* IOSurface.framework */,
+				B08C77941CB0510A008B014D /* IOKit.framework */,
 				1058C7A0FEA54F0111CA2CBB /* Linked Frameworks */,
 				1058C7A2FEA54F0111CA2CBB /* Other Frameworks */,
 			);
@@ -163,8 +171,8 @@
 		B03F2F981A5E066E004103D3 /* LiveParam */ = {
 			isa = PBXGroup;
 			children = (
-				B03F2F991A5E0681004103D3 /* LiveParam.h */,
-				B03F2F9A1A5E0681004103D3 /* LiveParam.cpp */,
+				B03F2F991A5E0681004103D3 /* Var.h */,
+				B03F2F9A1A5E0681004103D3 /* Var.cpp */,
 			);
 			name = LiveParam;
 			sourceTree = "<group>";
@@ -204,6 +212,7 @@
 		29B97313FDCFA39411CA2CEA /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
+				LastUpgradeCheck = 0710;
 			};
 			buildConfigurationList = C01FCF4E08A954540054247B /* Build configuration list for PBXProject "Demo" */;
 			compatibilityVersion = "Xcode 3.2";
@@ -241,7 +250,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A65E1FCCCA4B4CABBFAA444F /* DemoApp.cpp in Sources */,
-				B03F2F9B1A5E0681004103D3 /* LiveParam.cpp in Sources */,
+				B03F2F9B1A5E0681004103D3 /* Var.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -264,9 +273,11 @@
 					"$(inherited)",
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				HEADER_SEARCH_PATHS = "\"$(CINDER_PATH)/include\"";
 				INFOPLIST_FILE = Info.plist;
 				INSTALL_PATH = "$(HOME)/Applications";
 				OTHER_LDFLAGS = "\"$(CINDER_PATH)/lib/libcinder_d.a\"";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.libcinder.${PRODUCT_NAME:rfc1034identifier}";
 				PRODUCT_NAME = Demo;
 				SYMROOT = ./build;
 				WRAPPER_EXTENSION = app;
@@ -290,9 +301,11 @@
 					"$(inherited)",
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				HEADER_SEARCH_PATHS = "\"$(CINDER_PATH)/include\"";
 				INFOPLIST_FILE = Info.plist;
 				INSTALL_PATH = "$(HOME)/Applications";
 				OTHER_LDFLAGS = "\"$(CINDER_PATH)/lib/libcinder.a\"";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.libcinder.${PRODUCT_NAME:rfc1034identifier}";
 				PRODUCT_NAME = Demo;
 				STRIP_INSTALLED_PRODUCT = YES;
 				SYMROOT = ./build;
@@ -304,14 +317,15 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = x86_64;
 				CINDER_PATH = ../../../../..;
 				CLANG_CXX_LANGUAGE_STANDARD = "c++0x";
 				CLANG_CXX_LIBRARY = "libc++";
+				ENABLE_TESTABILITY = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = "\"$(CINDER_PATH)/boost\"";
 				MACOSX_DEPLOYMENT_TARGET = 10.8;
+				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
 				USER_HEADER_SEARCH_PATHS = "\"$(CINDER_PATH)/include\" ../include";
 			};
@@ -321,7 +335,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = x86_64;
 				CINDER_PATH = ../../../../..;
 				CLANG_CXX_LANGUAGE_STANDARD = "c++0x";
 				CLANG_CXX_LIBRARY = "libc++";

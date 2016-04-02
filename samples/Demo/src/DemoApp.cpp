@@ -1,47 +1,46 @@
-#include "cinder/app/AppNative.h"
+#include "cinder/app/App.h"
 #include "cinder/app/RendererGl.h"
 #include "cinder/gl/gl.h"
 
 #include "cinder/params/Params.h"
 #include "cinder/Perlin.h"
 
-#include "LiveParam.h"
+#include "Var.h"
 
 using namespace ci;
 using namespace ci::app;
-using namespace std;
-using namespace live;
 
 struct Disk {
-	Param<float>	mRadius;
-	Param<Color>	mColor;
-	vec2			mPos, mVel;
+	Disk()
+	: mRadius{ 0.0f, "radius", "disk", []() { app::console() << "Updated disk radius!" << std::endl; } }
+	, mColor{ Color{}, "color", "disk" }
+	, mPos{ app::getWindowSize() / 2 }
+	{ }
+	
+	Var<float>	mRadius;
+	Var<Color>	mColor;
+	glm::vec2	mPos, mVel;
 };
 
-class DemoApp : public AppNative {
+class DemoApp : public App {
 public:
-	void setup() override;
+	DemoApp();
 	void update() override;
 	void draw() override;
 	void keyDown( KeyEvent event ) override;
 	
 	Disk					mDisk;
 	Perlin					mPerlin;
-	Param<float>			mPerlinAmplitude, mPerlinSpeed, mPerlinScale, mFriction, mSpringK;
+	Var<float>				mPerlinAmplitude, mPerlinSpeed, mPerlinScale, mFriction, mSpringK;
 };
 
-void DemoApp::setup()
+DemoApp::DemoApp()
+: mPerlinScale( 0.001f, "scale", "perlin" )
+, mPerlinAmplitude( 0.5f, "amplitude", "perlin" )
+, mPerlinSpeed( 1.0f, "speed", "perlin" )
+, mFriction( 0.949999988f, "friction" )
+, mSpringK( 0.0025f, "springk" )
 {
-	JsonBag::add( &mDisk.mRadius, "disk_radius",  []() { app::console() << "Updated disk radius!" << endl; } );
-	JsonBag::add( &mDisk.mColor, "disk_color" );
-	JsonBag::add( &mPerlinScale, "perlin_scale" );
-	JsonBag::add( &mPerlinAmplitude, "perlin_amplitude" );
-	JsonBag::add( &mPerlinSpeed, "perlin_speed" );
-	JsonBag::add( &mFriction, "friction" );
-	JsonBag::add( &mSpringK, "springk" );
-	
-	mDisk.mPos = vec2( app::getWindowSize() / 2 );
-	
 //	bag()->load(); //called by watchdog automatically
 }
 
@@ -76,4 +75,4 @@ void DemoApp::keyDown( KeyEvent event )
 	}
 }
 
-CINDER_APP_NATIVE( DemoApp, RendererGl )
+CINDER_APP( DemoApp, RendererGl )
