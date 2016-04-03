@@ -69,10 +69,12 @@ namespace cinder {
 	template<typename T>
 	class Var : public ci::Noncopyable, public VarBase {
 	public:
-		Var( T value, const std::string& name, const std::string& groupName = "default", const std::function<void()> &updateFn = [](){} )
+		Var( T value, const std::string& name, const std::string& groupName = "default", float min = 0.0f, float max = 1.0f )
 		: VarBase{ &mValue }
 		, mValue{ value }
-		, mUpdateFn{ updateFn }
+		, mMin{ min }
+		, mMax{ max }
+//		, mUpdateFn{ []() { } }
 		{
 			ci::bag()->emplace( this, name, groupName );
 		}
@@ -100,7 +102,8 @@ namespace cinder {
 		void update( const T& newValue ) {
 			if( mValue != newValue ) {
 				mValue = newValue;
-				mUpdateFn();
+				if( mUpdateFn )
+					mUpdateFn();
 			}
 		}
 
@@ -109,6 +112,7 @@ namespace cinder {
 		void load( const std::string& name, ci::JsonTree::ConstIter& iter ) override;
 	
 		T						mValue;
+		float					mMin, mMax;
 		std::function<void()>	mUpdateFn;
 		friend class JsonBag;
 	};

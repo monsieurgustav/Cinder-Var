@@ -18,37 +18,37 @@ namespace cinder {
 	template<>
 	bool Var<int>::draw( const std::string& name )
 	{
-		return ui::DragInt( name.c_str(), &mValue, 0.11f, 0, 255 );
+		return ui::DragInt( name.c_str(), &mValue, 0.01f * (mMax - mMin), int(mMin), int(mMax) );
 	}
 	
 	template<>
 	bool Var<float>::draw( const std::string& name )
 	{
-		return ui::DragFloat( name.c_str(), &mValue, 0.01f, 0.0f, 1.0f );
+		return ui::DragFloat( name.c_str(), &mValue, 0.01f * (mMax - mMin), mMin, mMax );
 	}
 	
 	template<>
 	bool Var<glm::vec2>::draw( const std::string& name )
 	{
-		return ui::DragFloat2( name.c_str(), &mValue[0], 0.01f, 0.0f, 1.0f );
+		return ui::DragFloat2( name.c_str(), &mValue[0], 0.01f * (mMax - mMin), mMin, mMax );
 	}
 	
 	template<>
 	bool Var<glm::vec3>::draw( const std::string& name )
 	{
-		return ui::DragFloat3( name.c_str(), &mValue[0], 0.01f, 0.0f, 1.0f );
+		return ui::DragFloat3( name.c_str(), &mValue[0], 0.01f * (mMax - mMin), mMin, mMax );
 	}
 	
 	template<>
 	bool Var<glm::vec4>::draw( const std::string& name )
 	{
-		return ui::DragFloat4( name.c_str(), &mValue[0], 0.01f, 0.0f, 1.0f );
+		return ui::DragFloat4( name.c_str(), &mValue[0], 0.01f * (mMax - mMin), mMin, mMax );
 	}
 	
 	template<>
 	bool Var<Color>::draw( const std::string& name )
 	{
-		return ui::DragFloat3( name.c_str(), &mValue[0], 0.01f, 0.0f, 1.0f );
+		return ui::DragFloat3( name.c_str(), &mValue[0], 0.01f * (mMax - mMin), mMin, mMax );
 	}
 }
 
@@ -74,7 +74,7 @@ void uiUpdateVars()
 
 struct Disk {
 	Disk( const std::string& varGroup )
-	: mRadius{ 0.0f, "radius", varGroup, []() { app::console() << "Updated disk radius!" << std::endl; } }
+	: mRadius{ 0.0f, "radius", varGroup, 0.0f, 500.0f }
 	, mColor{ Color{}, "color", "disk" }
 	, mPos{ app::getWindowSize() / 2 }
 	{ }
@@ -98,7 +98,7 @@ public:
 
 DemoGUIApp::DemoGUIApp()
 : mDisk{ "disk" }
-, mPerlinScale( 0.001f, "scale", "perlin" )
+, mPerlinScale( 0.001f, "scale", "perlin", 0.0f, 0.1f )
 , mPerlinAmplitude( 0.5f, "amplitude", "perlin" )
 , mPerlinSpeed( 1.0f, "speed", "perlin" )
 , mFriction( 0.949999988f, "friction" )

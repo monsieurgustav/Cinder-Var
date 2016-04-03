@@ -12,10 +12,12 @@ using namespace ci::app;
 
 struct Disk {
 	Disk( const std::string& varGroup )
-	: mRadius{ 0.0f, "radius", varGroup, []() { app::console() << "Updated disk radius!" << std::endl; } }
+	: mRadius{ 0.0f, "radius", varGroup }
 	, mColor{ Color{}, "color", "disk" }
 	, mPos{ app::getWindowSize() / 2 }
-	{ }
+	{
+		mRadius.setUpdateFn( []() { app::console() << "Updated disk radius!" << std::endl; } );
+	}
 	
 	Var<float>	mRadius;
 	Var<Color>	mColor;
