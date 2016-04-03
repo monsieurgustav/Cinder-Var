@@ -45,7 +45,6 @@ namespace cinder {
 	
 	class VarBase {
 	public:
-		VarBase() : mOwner( nullptr ) { }
 		VarBase( void* target ) : mVoidPtr( target ), mOwner( nullptr ) { }
 		
 		virtual ~VarBase()
@@ -74,7 +73,6 @@ namespace cinder {
 		, mValue{ value }
 		, mMin{ min }
 		, mMax{ max }
-//		, mUpdateFn{ []() { } }
 		{
 			ci::bag()->emplace( this, name, groupName );
 		}
