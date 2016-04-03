@@ -57,13 +57,18 @@ using namespace ci::app;
 
 void uiUpdateVars()
 {
+	bool updated = false;
 	ui::ScopedWindow window{ "Variables" };
 	for( const auto& groupKv : bag()->getItems() ) {
 		if( ui::CollapsingHeader( groupKv.first.c_str(), nullptr, true, true ) ) {
 			for( auto& varKv : groupKv.second ) {
-				varKv.second->draw( varKv.first );
+				updated |= varKv.second->draw( varKv.first );
 			}
 		}
+	}
+	
+	if( updated ) {
+		bag()->save();
 	}
 }
 
@@ -84,7 +89,6 @@ public:
 	DemoGUIApp();
 	void update() override;
 	void draw() override;
-	void cleanup() override;
 	void keyDown( KeyEvent event ) override;
 	
 	Disk					mDisk;
@@ -123,11 +127,6 @@ void DemoGUIApp::draw()
 	gl::ScopedColor col;
 	gl::color( mDisk.mColor );
 	gl::drawSolidCircle( mDisk.mPos, mDisk.mRadius );
-}
-
-void DemoGUIApp::cleanup()
-{
-	bag()->save();
 }
 
 void DemoGUIApp::keyDown( KeyEvent event )
