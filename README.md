@@ -2,7 +2,7 @@
 A basic-live-cinder-json-saved-variable system using _Simon Geilfus'_ Watchdog as a submodule.
 
 ```
-ci::Var<float> mRadius{ 1.0f, "radius };
+ci::Var<float> mRadius{ 1.0f, "radius" };
 ```
 In `assets/`, the parameter values are stored as follows in the _live_vars.json_ file.
 
@@ -14,4 +14,4 @@ In `assets/`, the parameter values are stored as follows in the _live_vars.json_
 }
 ```
 
-Editing and saving that file will update the value in real-time.
+Editing and saving that file will update the value in real-time. Use `VarUi.h` with Cinder-ImGui to automatically expose these variables to UI.
