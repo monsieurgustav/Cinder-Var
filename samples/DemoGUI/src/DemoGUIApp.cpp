@@ -5,10 +5,67 @@
 #include "cinder/params/Params.h"
 #include "cinder/Perlin.h"
 
+#include "CinderImGui.h"
 #include "Var.h"
+
+namespace cinder {
+	template<>
+	bool Var<bool>::draw( const std::string& name )
+	{
+		return ui::Checkbox( name.c_str(), &mValue );
+	}
+	
+	template<>
+	bool Var<int>::draw( const std::string& name )
+	{
+		return ui::DragInt( name.c_str(), &mValue, 0.11f, 0, 255 );
+	}
+	
+	template<>
+	bool Var<float>::draw( const std::string& name )
+	{
+		return ui::DragFloat( name.c_str(), &mValue, 0.01f, 0.0f, 1.0f );
+	}
+	
+	template<>
+	bool Var<glm::vec2>::draw( const std::string& name )
+	{
+		return ui::DragFloat2( name.c_str(), &mValue[0], 0.01f, 0.0f, 1.0f );
+	}
+	
+	template<>
+	bool Var<glm::vec3>::draw( const std::string& name )
+	{
+		return ui::DragFloat3( name.c_str(), &mValue[0], 0.01f, 0.0f, 1.0f );
+	}
+	
+	template<>
+	bool Var<glm::vec4>::draw( const std::string& name )
+	{
+		return ui::DragFloat4( name.c_str(), &mValue[0], 0.01f, 0.0f, 1.0f );
+	}
+	
+	template<>
+	bool Var<Color>::draw( const std::string& name )
+	{
+		return ui::DragFloat3( name.c_str(), &mValue[0], 0.01f, 0.0f, 1.0f );
+	}
+}
 
 using namespace ci;
 using namespace ci::app;
+
+void uiUpdateVars()
+{
+	ui::ScopedWindow window{ "Variables" };
+	for( const auto& groupKv : bag()->getItems() ) {
+		if( ui::CollapsingHeader( groupKv.first.c_str(), nullptr, true, true ) ) {
+			for( auto& varKv : groupKv.second ) {
+				varKv.second->draw( varKv.first );
+			}
+		}
+	}
+}
 
 struct Disk {
 	Disk( const std::string& varGroup )
@@ -27,6 +84,7 @@ public:
 	DemoGUIApp();
 	void update() override;
 	void draw() override;
+	void cleanup() override;
 	void keyDown( KeyEvent event ) override;
 	
 	Disk					mDisk;
@@ -43,6 +101,8 @@ DemoGUIApp::DemoGUIApp()
 , mSpringK( 0.0025f, "springk" )
 {
 	//	bag()->load(); //called by watchdog automatically
+	
+	ui::initialize();
 }
 
 void DemoGUIApp::update()
@@ -52,6 +112,8 @@ void DemoGUIApp::update()
 	mDisk.mVel += acc + mSpringK() * ( vec2( app::getWindowSize() / 2 ) - mDisk.mPos );
 	mDisk.mVel *= mFriction();
 	mDisk.mPos += mDisk.mVel;
+	
+	uiUpdateVars();
 }
 
 void DemoGUIApp::draw()
@@ -61,6 +123,11 @@ void DemoGUIApp::draw()
 	gl::ScopedColor col;
 	gl::color( mDisk.mColor );
 	gl::drawSolidCircle( mDisk.mPos, mDisk.mRadius );
+}
+
+void DemoGUIApp::cleanup()
+{
+	bag()->save();
 }
 
 void DemoGUIApp::keyDown( KeyEvent event )

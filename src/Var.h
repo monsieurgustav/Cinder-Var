@@ -23,6 +23,8 @@ namespace cinder {
 	public:
 		void save() const;
 		void load();
+		
+		const std::unordered_map<std::string, std::unordered_map<std::string, VarBase*>>& getItems() const { return mItems; }
 	private:
 		JsonBag();
 		
@@ -55,7 +57,8 @@ namespace cinder {
 		void setOwner( JsonBag *owner ) { mOwner = owner; }
 		
 		void * getTarget() const { return mVoidPtr; }
-		
+
+		virtual bool draw( const std::string& name ) = 0;
 		virtual void save( const std::string& name, ci::JsonTree* tree ) const = 0;
 		virtual void load( const std::string& name, ci::JsonTree::ConstIter& iter ) = 0;
 	private:
@@ -67,8 +70,8 @@ namespace cinder {
 	class Var : public ci::Noncopyable, public VarBase {
 	public:
 		Var( T value, const std::string& name, const std::string& groupName = "default", const std::function<void()> &updateFn = [](){} )
-		: VarBase( &mValue )
-		, mValue( value )
+		: VarBase{ &mValue }
+		, mValue{ value }
 		, mUpdateFn{ updateFn }
 		{
 			ci::bag()->emplace( this, name, groupName );
@@ -100,7 +103,8 @@ namespace cinder {
 				mUpdateFn();
 			}
 		}
-		
+
+		bool draw( const std::string& name ) override { return false; }
 		void save( const std::string& name, ci::JsonTree* tree ) const override;
 		void load( const std::string& name, ci::JsonTree::ConstIter& iter ) override;
 	
@@ -108,6 +112,5 @@ namespace cinder {
 		std::function<void()>	mUpdateFn;
 		friend class JsonBag;
 	};
-
 } //namespace live
 
