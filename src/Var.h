@@ -104,7 +104,11 @@ namespace cinder {
 			}
 		}
 
+#ifdef VAR_IMGUI
+		bool draw( const std::string& name ) override;
+#else
 		bool draw( const std::string& name ) override { return false; }
+#endif
 		void save( const std::string& name, ci::JsonTree* tree ) const override;
 		void load( const std::string& name, ci::JsonTree::ConstIter& iter ) override;
 	

@@ -16,15 +16,18 @@
     <Filter Include="blocks">
       <UniqueIdentifier>{75008cf6-2dd9-46ad-98c0-ffeb4fc9655b}</UniqueIdentifier>
     </Filter>
-    <Filter Include="blocks\Cinder-LiveJsonParam">
-      <UniqueIdentifier>{7f918bba-30c8-41fb-9a46-4250f5a188ae}</UniqueIdentifier>
-    </Filter>
     <Filter Include="blocks\Watchdog">
       <UniqueIdentifier>{d565c3cd-61e4-4f74-a763-a228f0cc8133}</UniqueIdentifier>
     </Filter>
     <Filter Include="blocks\Watchdog\include">
       <UniqueIdentifier>{66df6119-d41c-49f9-b8eb-10a85111c1e2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="blocks\Cinder-Var">
+      <UniqueIdentifier>{7f918bba-30c8-41fb-9a46-4250f5a188ae}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="blocks\Cinder-Var\src">
+      <UniqueIdentifier>{b7f9ae41-7447-4288-aa84-caa4d6f652ec}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\DemoApp.cpp">
@@ -36,19 +39,19 @@
     <ClInclude Include="..\include\Resources.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClCompile Include="..\..\..\src\LiveParam.cpp">
-      <Filter>blocks\Cinder-LiveJsonParam</Filter>
+    <ClCompile Include="..\..\..\src\Var.cpp">
+      <Filter>blocks\Cinder-Var\src</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\Resources.h">
       <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\LiveParam.h">
-      <Filter>blocks\Cinder-LiveJsonParam</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\Watchdog\include\Watchdog.h">
       <Filter>blocks\Watchdog\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\Var.h">
+      <Filter>blocks\Cinder-Var\src</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

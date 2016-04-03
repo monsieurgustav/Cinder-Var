@@ -21,7 +21,7 @@ JsonBag* ci::bag()
 
 JsonBag::JsonBag()
 {
-	mJsonFilePath = app::getAssetPath("") / "live_vars.json";
+	mJsonFilePath = app::getAssetPath( "" ) / fs::path{ "live_vars.json" };
 	
 	// Create json file if it doesn't already exist.
 	if( ! fs::exists( mJsonFilePath ) ) {

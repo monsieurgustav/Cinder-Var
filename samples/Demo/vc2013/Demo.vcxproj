@@ -194,11 +194,11 @@
     <ResourceCompile Include="Resources.rc" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\src\LiveParam.cpp" />
+    <ClCompile Include="..\..\..\src\Var.cpp" />
     <ClCompile Include="..\src\DemoApp.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\src\LiveParam.h" />
+    <ClInclude Include="..\..\..\src\Var.h" />
     <ClInclude Include="..\..\..\src\Watchdog\include\Watchdog.h" />
     <ClInclude Include="..\include\Resources.h" />
   </ItemGroup>

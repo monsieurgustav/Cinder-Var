@@ -5,7 +5,6 @@
 #include "cinder/params/Params.h"
 #include "cinder/Perlin.h"
 
-#define VAR_IMGUI
 #include "VarUi.h"
 
 using namespace ci;
