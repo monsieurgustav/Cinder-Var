@@ -9,6 +9,16 @@ using namespace ci;
 std::unique_ptr<JsonBag> JsonBag::mInstance = nullptr;
 std::once_flag JsonBag::mOnceFlag;
 
+JsonBag* ci::bag()
+{
+	std::call_once(JsonBag::mOnceFlag,
+				   [] {
+					   JsonBag::mInstance.reset( new JsonBag );
+				   });
+	
+	return JsonBag::mInstance.get();
+}
+
 JsonBag::JsonBag()
 {
 	mJsonFilePath = app::getAssetPath("") / "live_vars.json";
@@ -103,16 +113,6 @@ void JsonBag::load()
 	catch( const JsonTree::ExcJsonParserError& )  {
 		CI_LOG_E( "Failed to parse json file." );
 	}
-}
-
-JsonBag* ci::bag()
-{
-	std::call_once(JsonBag::mOnceFlag,
-				   [] {
-					   JsonBag::mInstance.reset( new JsonBag );
-				   });
-	
-	return JsonBag::mInstance.get();
 }
 
 template<>

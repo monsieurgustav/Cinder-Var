@@ -58,6 +58,7 @@
 		984DD52D00FB4AD1B44D5246 /* imgui_draw.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.cpp; name = imgui_draw.cpp; path = "../../../../Cinder-ImGui/lib/imgui/imgui_draw.cpp"; sourceTree = "<group>"; };
 		9B18A69B1C71402A986F5082 /* DemoGUI_Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = "\"\""; path = DemoGUI_Prefix.pch; sourceTree = "<group>"; };
 		B08C77981CB06844008B014D /* assets */ = {isa = PBXFileReference; lastKnownFileType = folder; name = assets; path = ../assets; sourceTree = "<group>"; };
+		B08C779C1CB199CC008B014D /* VarUi.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = VarUi.h; path = ../../../src/VarUi.h; sourceTree = "<group>"; };
 		BD939ED0E01E4DE7B2464331 /* Var.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Var.h; path = ../../../src/Var.h; sourceTree = "<group>"; };
 		CDCE2386E67842138BEFDB4D /* imgui.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.cpp; name = imgui.cpp; path = "../../../../Cinder-ImGui/lib/imgui/imgui.cpp"; sourceTree = "<group>"; };
 		CE3C8FD7D38945C7BF22A00D /* DemoGUIApp.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.cpp; name = DemoGUIApp.cpp; path = ../src/DemoGUIApp.cpp; sourceTree = "<group>"; };
@@ -232,6 +233,7 @@
 			children = (
 				397F66A1A2FE4251B114D625 /* Var.cpp */,
 				BD939ED0E01E4DE7B2464331 /* Var.h */,
+				B08C779C1CB199CC008B014D /* VarUi.h */,
 				6CC381C1D8B84EBA810A19E7 /* Watchdog */,
 			);
 			name = src;

@@ -35,10 +35,9 @@ namespace cinder {
 		static std::once_flag			mOnceFlag;
 		
 		std::unordered_map<std::string, std::unordered_map<std::string, VarBase*>> mItems;
-		
-		friend JsonBag* bag();
 		ci::fs::path	mJsonFilePath;
 		
+		friend JsonBag* bag();
 		friend class VarBase;
 		template<typename T> friend class Var;
 	};
