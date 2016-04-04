@@ -44,7 +44,7 @@ DemoApp::DemoApp()
 , mFriction( 0.949999988f, "friction" )
 , mSpringK( 0.0025f, "springk" )
 {
-//	bag()->load(); //called by watchdog automatically
+	bag()->setFilepath( app::getAssetPath( "" ) / fs::path{ "live_vars.json" } );
 }
 
 void DemoApp::update()

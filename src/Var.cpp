@@ -11,24 +11,37 @@ std::once_flag JsonBag::mOnceFlag;
 
 JsonBag* ci::bag()
 {
-	std::call_once(JsonBag::mOnceFlag,
-				   [] {
-					   JsonBag::mInstance.reset( new JsonBag );
-				   });
+	std::call_once( JsonBag::mOnceFlag,
+		[] {
+			JsonBag::mInstance.reset( new JsonBag );
+		} );
 	
 	return JsonBag::mInstance.get();
 }
 
 JsonBag::JsonBag()
 {
-	mJsonFilePath = app::getAssetPath( "" ) / fs::path{ "live_vars.json" };
-	
+}
+
+void JsonBag::setFilepath( const fs::path & path )
+{
+	if( ! mJsonFilePath.empty() ) {
+		if( mJsonFilePath == path ) {
+			return;
+		}
+		
+		if( fs::is_regular_file( mJsonFilePath ) ) {
+			wd::unwatch( mJsonFilePath );
+		}
+	}
+	mJsonFilePath = path;
+
 	// Create json file if it doesn't already exist.
 	if( ! fs::exists( mJsonFilePath ) ) {
 		std::ofstream oStream( mJsonFilePath.string() );
 		oStream.close();
 	}
-	
+
 	wd::watch( mJsonFilePath, [this]( const fs::path &absolutePath )
 	{
 		this->load();
@@ -72,6 +85,8 @@ void JsonBag::removeTarget( void *target )
 
 void JsonBag::save() const
 {
+	CI_ASSERT( fs::is_regular_file( mJsonFilePath ) );
+
 	JsonTree doc;
 	for( auto& group : mItems ) {
 		JsonTree jsonGroup = JsonTree::makeArray( group.first );
@@ -85,9 +100,8 @@ void JsonBag::save() const
 
 void JsonBag::load()
 {
-	if( ! fs::exists( mJsonFilePath ) ) {
+	if( ! fs::exists( mJsonFilePath ) )
 		return;
-	}
 	
 	try {
 		JsonTree doc( loadFile( mJsonFilePath ) );

@@ -21,9 +21,11 @@ namespace cinder {
 	
 	class JsonBag : public ci::Noncopyable {
 	public:
+		const fs::path& getFilepath() const { return mJsonFilePath; }
+		void setFilepath( const fs::path& path );
 		void save() const;
 		void load();
-		
+
 		const std::unordered_map<std::string, std::unordered_map<std::string, VarBase*>>& getItems() const { return mItems; }
 	private:
 		JsonBag();
@@ -37,7 +39,7 @@ namespace cinder {
 		std::unordered_map<std::string, std::unordered_map<std::string, VarBase*>> mItems;
 		ci::fs::path	mJsonFilePath;
 		
-		friend JsonBag* bag();
+		friend JsonBag* ci::bag();
 		friend class VarBase;
 		template<typename T> friend class Var;
 	};
