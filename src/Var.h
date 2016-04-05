@@ -26,6 +26,9 @@ namespace cinder {
 		void save() const;
 		void load();
 
+		int getVersion() const { return mVersion; }
+		void setVersion( int version ) { mVersion = version; }
+
 		const std::unordered_map<std::string, std::unordered_map<std::string, VarBase*>>& getItems() const { return mItems; }
 	private:
 		JsonBag();
@@ -38,6 +41,7 @@ namespace cinder {
 		
 		std::unordered_map<std::string, std::unordered_map<std::string, VarBase*>> mItems;
 		ci::fs::path	mJsonFilePath;
+		int				mVersion;
 		
 		friend JsonBag* ci::bag();
 		friend class VarBase;

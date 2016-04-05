@@ -20,6 +20,7 @@ JsonBag* ci::bag()
 }
 
 JsonBag::JsonBag()
+	: mVersion{ 0 }
 {
 }
 
@@ -95,6 +96,7 @@ void JsonBag::save() const
 		}
 		doc.pushBack( jsonGroup );
 	}
+	doc.addChild( JsonTree{ "version", mVersion } );
 	doc.write( writeFile( mJsonFilePath ), JsonTree::WriteOptions() );
 }
 
@@ -105,6 +107,11 @@ void JsonBag::load()
 	
 	try {
 		JsonTree doc( loadFile( mJsonFilePath ) );
+
+		if( doc.hasChild( "version" ) ) {
+			mVersion = doc.getChild( "version" ).getValue<int>();
+		}
+
 		for( JsonTree::ConstIter groupIt = doc.begin(); groupIt != doc.end(); ++groupIt ) {
 			auto& jsonGroup = *groupIt;
 			auto groupName = jsonGroup.getKey();
