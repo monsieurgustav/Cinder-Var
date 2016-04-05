@@ -3,6 +3,7 @@
 #include <fstream>
 
 #include "cinder/Quaternion.h"
+#include "cinder/app/App.h"
 
 using namespace ci;
 
@@ -120,7 +121,7 @@ void JsonBag::load()
 				for( JsonTree::ConstIter item = jsonGroup.begin(); item != jsonGroup.end(); ++item ) {
 					const auto& name = item->getKey();
 					if( groupItems.count( name ) ) {
-						groupItems.at( name )->load( name, item );
+						groupItems.at( name )->load( item );
 					} else {
 						CI_LOG_E( "No item named " + name );
 					}
@@ -207,25 +208,33 @@ void Var<ci::Color>::save( const std::string& name, ci::JsonTree* tree ) const
 }
 
 template<>
-void Var<bool>::load( const std::string& name, ci::JsonTree::ConstIter& iter )
+void Var<ci::DataSourceRef>::save( const std::string& name, ci::JsonTree* tree ) const
+{
+	auto v = ci::JsonTree{ name, mValue->getFilePath().string() };
+	tree->addChild( v );
+}
+
+
+template<>
+void Var<bool>::load( ci::JsonTree::ConstIter& iter )
 {
 	update( iter->getValue<bool>() );
 }
 
 template<>
-void Var<int>::load( const std::string& name, ci::JsonTree::ConstIter& iter )
+void Var<int>::load( ci::JsonTree::ConstIter& iter )
 {
 	update( iter->getValue<int>() );
 }
 
 template<>
-void Var<float>::load( const std::string& name, ci::JsonTree::ConstIter& iter )
+void Var<float>::load( ci::JsonTree::ConstIter& iter )
 {
 	update( iter->getValue<float>() );
 }
 
 template<>
-void Var<glm::vec2>::load( const std::string& name, ci::JsonTree::ConstIter& iter )
+void Var<glm::vec2>::load( ci::JsonTree::ConstIter& iter )
 {
 	glm::vec2 v;
 	v.x = iter->getChild( "x" ).getValue<float>();
@@ -234,7 +243,7 @@ void Var<glm::vec2>::load( const std::string& name, ci::JsonTree::ConstIter& ite
 }
 
 template<>
-void Var<glm::vec3>::load( const std::string& name, ci::JsonTree::ConstIter& iter )
+void Var<glm::vec3>::load( ci::JsonTree::ConstIter& iter )
 {
 	glm::vec3 v;
 	v.x = iter->getChild( "x" ).getValue<float>();
@@ -244,7 +253,7 @@ void Var<glm::vec3>::load( const std::string& name, ci::JsonTree::ConstIter& ite
 }
 
 template<>
-void Var<glm::vec4>::load( const std::string& name, ci::JsonTree::ConstIter& iter )
+void Var<glm::vec4>::load( ci::JsonTree::ConstIter& iter )
 {
 	glm::vec4 v;
 	v.x = iter->getChild( "x" ).getValue<float>();
@@ -255,7 +264,7 @@ void Var<glm::vec4>::load( const std::string& name, ci::JsonTree::ConstIter& ite
 }
 
 template<>
-void Var<glm::quat>::load( const std::string& name, ci::JsonTree::ConstIter& iter )
+void Var<glm::quat>::load( ci::JsonTree::ConstIter& iter )
 {
 	glm::quat q;
 	q.w = iter->getChild( "w" ).getValue<float>();
@@ -266,7 +275,7 @@ void Var<glm::quat>::load( const std::string& name, ci::JsonTree::ConstIter& ite
 }
 
 template<>
-void Var<ci::Color>::load( const std::string& name, ci::JsonTree::ConstIter& iter )
+void Var<ci::Color>::load( ci::JsonTree::ConstIter& iter )
 {
 	ci::Color c;
 	c.r = iter->getChild( "r" ).getValue<float>();
@@ -274,3 +283,16 @@ void Var<ci::Color>::load( const std::string& name, ci::JsonTree::ConstIter& ite
 	c.b = iter->getChild( "b" ).getValue<float>();
 	update( c );
 }
+
+
+template<>
+void Var<ci::DataSourceRef>::load( ci::JsonTree::ConstIter& iter )
+{
+	auto newFilepath = iter->getValue<std::string>();
+	if( mValue->getFilePath().string() != newFilepath ) {
+		mValue = ci::app::loadAsset( newFilepath );
+		if( mUpdateFn )
+			mUpdateFn();
+	}
+}
+

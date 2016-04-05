@@ -64,7 +64,7 @@ namespace cinder {
 
 		virtual bool draw( const std::string& name ) = 0;
 		virtual void save( const std::string& name, ci::JsonTree* tree ) const = 0;
-		virtual void load( const std::string& name, ci::JsonTree::ConstIter& iter ) = 0;
+		virtual void load( ci::JsonTree::ConstIter& iter ) = 0;
 	private:
 		JsonBag*	mOwner;
 		void*		mVoidPtr;
@@ -116,7 +116,7 @@ namespace cinder {
 		bool draw( const std::string& name ) override { return false; }
 #endif
 		void save( const std::string& name, ci::JsonTree* tree ) const override;
-		void load( const std::string& name, ci::JsonTree::ConstIter& iter ) override;
+		void load( ci::JsonTree::ConstIter& iter ) override;
 	
 		T						mValue;
 		float					mMin, mMax;
