@@ -4,7 +4,7 @@
 #include "cinder/Log.h"
 #include "cinder/Utilities.h"
 
-#include <unordered_map>
+#include <map>
 
 #include "Watchdog.h"
 
@@ -18,6 +18,26 @@ namespace cinder {
 	template<typename T> class Var;
 	
 	JsonBag* bag();
+
+	template<class V>
+	class Asset {
+	public:
+		Asset( const std::string& filepath, const V& asset )
+			: mAssetFilepath( filepath )
+			, mAsset( asset )
+		{ }
+		
+		const std::string& getAssetFilepath() const { return mAssetFilepath; }
+		std::string* getAssetFilepathPtr() { return &mAssetFilepath; }
+
+		void update( const std::string& fp );
+
+		const V&	getAsset() const { return mAsset; }
+		V&			getAsset() { return mAsset; }
+	private:
+		std::string mAssetFilepath;
+		V mAsset;
+	};
 	
 	class JsonBag : public ci::Noncopyable {
 	public:
@@ -28,8 +48,9 @@ namespace cinder {
 
 		int getVersion() const { return mVersion; }
 		void setVersion( int version ) { mVersion = version; }
+		bool isLoaded() const { return mIsLoaded; }
 
-		const std::unordered_map<std::string, std::unordered_map<std::string, VarBase*>>& getItems() const { return mItems; }
+		const std::map<std::string, std::map<std::string, VarBase*>>& getItems() const { return mItems; }
 	private:
 		JsonBag();
 		
@@ -39,9 +60,10 @@ namespace cinder {
 		static std::unique_ptr<JsonBag>	mInstance;
 		static std::once_flag			mOnceFlag;
 		
-		std::unordered_map<std::string, std::unordered_map<std::string, VarBase*>> mItems;
+		std::map<std::string, std::map<std::string, VarBase*>> mItems;
 		ci::fs::path	mJsonFilePath;
 		int				mVersion;
+		bool			mIsLoaded;
 		
 		friend JsonBag* ci::bag();
 		friend class VarBase;
@@ -75,15 +97,17 @@ namespace cinder {
 	public:
 		Var( T value, const std::string& name, const std::string& groupName = "default", float min = 0.0f, float max = 1.0f )
 		: VarBase{ &mValue }
-		, mValue{ value }
+		, mValue( value )
 		, mMin{ min }
 		, mMax{ max }
 		{
 			ci::bag()->emplace( this, name, groupName );
 		}
 		
-		void setUpdateFn( const std::function<void()> &updateFn ) {
+		void setUpdateFn( const std::function<void()> &updateFn, bool call = false ) {
 			mUpdateFn = updateFn;
+			if( call )
+				mUpdateFn();
 		};
 		
 		operator const T&() const { return mValue; }

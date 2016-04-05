@@ -4,6 +4,7 @@
 
 #include "cinder/Quaternion.h"
 #include "cinder/app/App.h"
+#include "cinder/gl/gl.h"
 
 using namespace ci;
 
@@ -21,7 +22,8 @@ JsonBag* ci::bag()
 }
 
 JsonBag::JsonBag()
-	: mVersion{ 0 }
+: mVersion{ 0 }
+, mIsLoaded{ false }
 {
 }
 
@@ -47,6 +49,7 @@ void JsonBag::setFilepath( const fs::path & path )
 	wd::watch( mJsonFilePath, [this]( const fs::path &absolutePath )
 	{
 		this->load();
+		mIsLoaded = true;
 	} );
 }
 
@@ -127,7 +130,7 @@ void JsonBag::load()
 					}
 				}
 			}
-			else {
+			else if( groupName != "version" ) {
 				CI_LOG_E( "No group named " + groupName );
 			}
 		}
@@ -208,9 +211,16 @@ void Var<ci::Color>::save( const std::string& name, ci::JsonTree* tree ) const
 }
 
 template<>
-void Var<ci::DataSourceRef>::save( const std::string& name, ci::JsonTree* tree ) const
+void Var<std::string>::save( const std::string& name, ci::JsonTree* tree ) const
 {
-	auto v = ci::JsonTree{ name, mValue->getFilePath().string() };
+	auto v = ci::JsonTree{ name, mValue };
+	tree->addChild( v );
+}
+
+template<>
+void Var<Asset<ci::gl::Texture2dRef>>::save( const std::string& name, ci::JsonTree* tree ) const
+{
+	auto v = ci::JsonTree{ name, mValue.getAssetFilepath() };
 	tree->addChild( v );
 }
 
@@ -286,13 +296,37 @@ void Var<ci::Color>::load( ci::JsonTree::ConstIter& iter )
 
 
 template<>
-void Var<ci::DataSourceRef>::load( ci::JsonTree::ConstIter& iter )
+void Var<std::string>::load( ci::JsonTree::ConstIter& iter )
 {
-	auto newFilepath = iter->getValue<std::string>();
-	if( mValue->getFilePath().string() != newFilepath ) {
-		mValue = ci::app::loadAsset( newFilepath );
+	auto fp = iter->getValue<std::string>();
+	update( fp );
+}
+
+template<>
+inline void Asset<ci::gl::Texture2dRef>::update( const std::string & fp )
+{
+	mAssetFilepath = fp;
+	try {
+		mAsset = gl::Texture2d::create( loadImage( app::loadAsset( fp ) ) );
+	}
+	catch( const Exception& exc ) {
+		mAsset.reset();
+		CI_LOG_EXCEPTION( "Load error", exc );
+	}
+}
+
+template<>
+void Var<Asset<ci::gl::Texture2dRef>>::load( ci::JsonTree::ConstIter& iter )
+{
+	auto fp = iter->getValue<std::string>();
+
+	if( ! mValue.getAsset() || mValue.getAssetFilepath() != fp ) {
+
+		mValue.update( fp );
+
 		if( mUpdateFn )
 			mUpdateFn();
 	}
 }
+
 

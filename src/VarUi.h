@@ -49,6 +49,25 @@ namespace cinder {
 	{
 		return ui::DragFloat3( name.c_str(), &mValue[0], 0.01f * (mMax - mMin), mMin, mMax );
 	}
+
+	template<>
+	inline bool Var<std::string>::draw( const std::string& name )
+	{
+		return ui::InputText( name.c_str(), &mValue );
+	}
+
+	template<>
+	inline bool Var<ci::Asset<gl::Texture2dRef>>::draw( const std::string& name )
+	{
+		auto modified = ui::InputText( name.c_str(), mValue.getAssetFilepathPtr() );
+		if( modified ) {
+			mValue.update( mValue.getAssetFilepath() );
+		}
+		if( mValue.getAsset() ) {
+			ui::Image( mValue.getAsset(), ivec2( 256, 256 ) );
+		}
+		return modified;
+	}
 	
 	inline void uiDrawVariables()
 	{
