@@ -307,7 +307,7 @@ inline void Asset<ci::gl::Texture2dRef>::update( const std::string & fp )
 {
 	mAssetFilepath = fp;
 	try {
-		mAsset = gl::Texture2d::create( loadImage( app::loadAsset( fp ) ) );
+		mAsset = gl::Texture2d::create( loadImage( app::loadAsset( "img/" + fp ) ) );
 	}
 	catch( const Exception& exc ) {
 		mAsset.reset();
