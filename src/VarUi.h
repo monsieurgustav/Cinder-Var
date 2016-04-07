@@ -7,8 +7,6 @@
 #include "CinderImGui.h"
 #include "Var.h"
 
-#include <vector>
-
 namespace ImGui {
 	inline void drawVarsWindow( const std::string& windowName )
 	{
@@ -30,7 +28,7 @@ namespace ImGui {
 
 namespace cinder {
 
-	std::vector<std::string> getFiles( const std::string& directory ) {
+	inline std::vector<std::string> getFiles( const std::string& directory ) {
 		std::vector<std::string> names;
 		auto root = app::getAssetPath( "" ) / fs::path{ directory };
 		if( fs::is_directory( root ) ) {
