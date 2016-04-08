@@ -18,26 +18,6 @@ namespace cinder {
 	template<typename T> class Var;
 	
 	JsonBag* bag();
-
-	template<class V>
-	class Asset {
-	public:
-		Asset( const std::string& filepath, const V& asset )
-			: mAssetFilepath( filepath )
-			, mAsset( asset )
-		{ }
-		
-		const std::string& getAssetFilepath() const { return mAssetFilepath; }
-		std::string* getAssetFilepathPtr() { return &mAssetFilepath; }
-
-		void update( const std::string& fp );
-
-		const V&	getAsset() const { return mAsset; }
-		V&			getAsset() { return mAsset; }
-	private:
-		std::string mAssetFilepath;
-		V mAsset;
-	};
 	
 	class JsonBag : public ci::Noncopyable {
 	public:
