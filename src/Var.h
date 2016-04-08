@@ -75,7 +75,7 @@ namespace cinder {
 	template<typename T>
 	class Var : public ci::Noncopyable, public VarBase {
 	public:
-		Var( T value, const std::string& name, const std::string& groupName = "default", float min = 0.0f, float max = 1.0f )
+		Var( const T& value, const std::string& name, const std::string& groupName = "default", float min = 0.0f, float max = 1.0f )
 		: VarBase{ &mValue }
 		, mValue( value )
 		, mMin{ min }
