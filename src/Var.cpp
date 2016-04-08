@@ -2,9 +2,7 @@
 #include "cinder/Filesystem.h"
 #include <fstream>
 
-#include "cinder/Quaternion.h"
 #include "cinder/app/App.h"
-#include "cinder/gl/gl.h"
 
 using namespace ci;
 
@@ -218,14 +216,6 @@ void Var<std::string>::save( const std::string& name, ci::JsonTree* tree ) const
 }
 
 template<>
-void Var<Asset<ci::gl::Texture2dRef>>::save( const std::string& name, ci::JsonTree* tree ) const
-{
-	auto v = ci::JsonTree{ name, mValue.getAssetFilepath() };
-	tree->addChild( v );
-}
-
-
-template<>
 void Var<bool>::load( ci::JsonTree::ConstIter& iter )
 {
 	update( iter->getValue<bool>() );
@@ -300,33 +290,6 @@ void Var<std::string>::load( ci::JsonTree::ConstIter& iter )
 {
 	auto fp = iter->getValue<std::string>();
 	update( fp );
-}
-
-template<>
-inline void Asset<ci::gl::Texture2dRef>::update( const std::string & fp )
-{
-	mAssetFilepath = fp;
-	try {
-		mAsset = gl::Texture2d::create( loadImage( app::loadAsset( "img/" + fp ) ) );
-	}
-	catch( const Exception& exc ) {
-		mAsset.reset();
-		CI_LOG_EXCEPTION( "Load error", exc );
-	}
-}
-
-template<>
-void Var<Asset<ci::gl::Texture2dRef>>::load( ci::JsonTree::ConstIter& iter )
-{
-	auto fp = iter->getValue<std::string>();
-
-	if( ! mValue.getAsset() || mValue.getAssetFilepath() != fp ) {
-
-		mValue.update( fp );
-
-		if( mUpdateFn )
-			mUpdateFn();
-	}
 }
 
 

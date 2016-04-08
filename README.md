@@ -14,4 +14,4 @@ In `assets/`, the parameter values are stored as follows in the _live_vars.json_
 }
 ```
 
-Editing and saving that file will update the value in real-time. Use `VarUi.h` with Cinder-ImGui to automatically expose these variables to UI.
+Editing and saving that file will update the value in real-time.
