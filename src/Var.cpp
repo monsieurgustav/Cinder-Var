@@ -31,10 +31,6 @@ void JsonBag::setFilepath( const fs::path & path )
 		if( mJsonFilePath == path ) {
 			return;
 		}
-		
-		if( fs::is_regular_file( mJsonFilePath ) ) {
-			wd::unwatch( mJsonFilePath );
-		}
 	}
 	mJsonFilePath = path;
 
@@ -136,6 +132,11 @@ void JsonBag::load()
 	catch( const JsonTree::ExcJsonParserError& )  {
 		CI_LOG_E( "Failed to parse json file." );
 	}
+}
+
+void JsonBag::unwatch()
+{
+	wd::unwatch( mJsonFilePath );
 }
 
 template<>

@@ -25,6 +25,7 @@ namespace cinder {
 		void setFilepath( const fs::path& path );
 		void save() const;
 		void load();
+		void unwatch();
 
 		int getVersion() const { return mVersion; }
 		void setVersion( int version ) { mVersion = version; }
