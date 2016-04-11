@@ -53,22 +53,22 @@ namespace cinder {
 	
 	class VarBase {
 	public:
-		VarBase( void* target ) : mVoidPtr( target ), mOwner( nullptr ) { }
-		
-		virtual ~VarBase()
-		{
-			if( mOwner )
-				mOwner->removeTarget( mVoidPtr );
-		};
+		VarBase( void* target );
+		virtual ~VarBase();
 		
 		void setOwner( JsonBag *owner ) { mOwner = owner; }
+		
+		void setUpdateFn( const std::function<void()> &updateFn, bool call = false );
+		void callUpdateFn();
 		
 		void * getTarget() const { return mVoidPtr; }
 
 		virtual bool draw( const std::string& name ) = 0;
 		virtual void save( const std::string& name, ci::JsonTree* tree ) const = 0;
 		virtual void load( ci::JsonTree::ConstIter& iter ) = 0;
-	private:
+	protected:
+		std::function<void()>	mUpdateFn;
+
 		JsonBag*	mOwner;
 		void*		mVoidPtr;
 	};
@@ -84,12 +84,6 @@ namespace cinder {
 		{
 			ci::bag()->emplace( this, name, groupName );
 		}
-		
-		void setUpdateFn( const std::function<void()> &updateFn, bool call = false ) {
-			mUpdateFn = updateFn;
-			if( call )
-				mUpdateFn();
-		};
 		
 		operator const T&() const { return mValue; }
 		
@@ -110,8 +104,7 @@ namespace cinder {
 		void update( const T& newValue ) {
 			if( mValue != newValue ) {
 				mValue = newValue;
-				if( mUpdateFn )
-					mUpdateFn();
+				callUpdateFn();
 			}
 		}
 
@@ -125,7 +118,6 @@ namespace cinder {
 	
 		T						mValue;
 		float					mMin, mMax;
-		std::function<void()>	mUpdateFn;
 		friend class JsonBag;
 	};
 } //namespace live

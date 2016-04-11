@@ -139,6 +139,33 @@ void JsonBag::unwatch()
 	wd::unwatch( mJsonFilePath );
 }
 
+
+VarBase::VarBase( void *target )
+	: mVoidPtr( target ), mOwner( nullptr )
+{
+
+}
+
+
+VarBase::~VarBase()
+{
+	if( mOwner )
+		mOwner->removeTarget( mVoidPtr );
+};
+
+void VarBase::setUpdateFn( const std::function<void()> &updateFn, bool call )
+{
+	mUpdateFn = updateFn;
+	if( call )
+		mUpdateFn();
+}
+
+void VarBase::callUpdateFn()
+{
+	if( mUpdateFn )
+		mUpdateFn();
+}
+
 template<>
 void Var<bool>::save( const std::string& name, ci::JsonTree* tree ) const
 {
