@@ -84,37 +84,33 @@ namespace cinder {
 		{
 			ci::bag()->emplace( this, name, groupName );
 		}
+		virtual ~Var() { }
+
+		virtual operator const T&() const { return mValue; }
 		
-		operator const T&() const { return mValue; }
-		
-		Var<T>& operator=( T value ) { mValue = value; return *this; }
-		
-		const T&	value() const { return mValue; }
-		T&			value() { return mValue; }
-		
-		//! Short-hand for value()
-		const T&	operator()() const { return mValue; }
-		//! Short-hand for value()
-		T&			operator()() { return mValue; }
-		
-		const T*	ptr() const { return &mValue; }
-		T*			ptr() { return &mValue; }
-		
+		virtual Var<T>& operator=( T value )
+		{
+			update( value );
+			return *this;
+		}		
+		virtual const T&	value() const { return mValue; }
+		virtual const T&	operator()() const { return mValue; }
 	protected:
-		void update( const T& newValue ) {
-			if( mValue != newValue ) {
-				mValue = newValue;
+
+		void update( T value ) {
+			if( mValue != value ) {
+				mValue = value;
 				callUpdateFn();
 			}
 		}
 
 #ifdef VAR_IMGUI
-		bool draw( const std::string& name ) override;
+		virtual bool draw( const std::string& name ) override;
 #else
-		bool draw( const std::string& name ) override { return false; }
+		virtual bool draw( const std::string& name ) override { return false; }
 #endif
-		void save( const std::string& name, ci::JsonTree* tree ) const override;
-		void load( ci::JsonTree::ConstIter& iter ) override;
+		virtual void save( const std::string& name, ci::JsonTree* tree ) const override;
+		virtual void load( ci::JsonTree::ConstIter& iter ) override;
 	
 		T						mValue;
 		float					mMin, mMax;
