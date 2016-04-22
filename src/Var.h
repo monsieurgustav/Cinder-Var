@@ -27,6 +27,9 @@ namespace cinder {
 		void load();
 		void unwatch();
 
+		void setIsLive( bool live );
+		bool getIsLive() const { return mIsLive; }
+
 		int getVersion() const { return mVersion; }
 		void setVersion( int version ) { mVersion = version; }
 		bool isLoaded() const { return mIsLoaded; }
@@ -45,6 +48,8 @@ namespace cinder {
 		ci::fs::path	mJsonFilePath;
 		int				mVersion;
 		bool			mIsLoaded;
+
+		bool			mIsLive;
 		
 		friend JsonBag* ci::bag();
 		friend class VarBase;
@@ -98,10 +103,10 @@ namespace cinder {
 	protected:
 
 		void update( T value ) {
-			if( mValue != value ) {
+			//if( mValue != value ) {
 				mValue = value;
 				callUpdateFn();
-			}
+			//}
 		}
 
 #ifdef VAR_IMGUI

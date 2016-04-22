@@ -22,6 +22,7 @@ JsonBag* ci::bag()
 JsonBag::JsonBag()
 : mVersion{ 0 }
 , mIsLoaded{ false }
+, mIsLive{ true }
 {
 }
 
@@ -39,12 +40,11 @@ void JsonBag::setFilepath( const fs::path & path )
 		std::ofstream oStream( mJsonFilePath.string() );
 		oStream.close();
 	}
-
-	wd::watch( mJsonFilePath, [this]( const fs::path &absolutePath )
-	{
-		this->load();
-		mIsLoaded = true;
-	} );
+	if( mIsLive ) {
+		wd::watch( mJsonFilePath, [this]( const fs::path &absolutePath ) {
+			this->load();
+		} );
+	}
 }
 
 void JsonBag::emplace( VarBase* var, const std::string &name, const std::string groupName )
@@ -132,11 +132,22 @@ void JsonBag::load()
 	catch( const JsonTree::ExcJsonParserError& )  {
 		CI_LOG_E( "Failed to parse json file." );
 	}
+	mIsLoaded = true;
 }
 
 void JsonBag::unwatch()
 {
-	wd::unwatch( mJsonFilePath );
+	if( mIsLive ) {
+		wd::unwatch( mJsonFilePath );
+	}
+}
+
+void JsonBag::setIsLive( bool live )
+{
+	mIsLive = live;
+	if( ! mIsLive ) {
+		wd::unwatchAll();
+	}
 }
 
 
