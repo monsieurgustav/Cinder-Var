@@ -2,6 +2,8 @@
 #include "cinder/Filesystem.h"
 #include <fstream>
 
+#include <unordered_set>
+
 #include "cinder/app/App.h"
 
 using namespace ci;
@@ -22,33 +24,76 @@ JsonBag* ci::bag()
 JsonBag::JsonBag()
 : mVersion{ 0 }
 , mIsLoaded{ false }
-, mIsLive{ true }
+, mIsLive{ false }
+, mShouldQuit{ false }
+, mAsyncFilepath{ 1 }
 {
+	gl::ContextRef backgroundCtx = gl::Context::create( gl::context() );
+	mThread = std::shared_ptr<std::thread>( new std::thread( bind( &JsonBag::loadVarsThreadFn, this, backgroundCtx ) ) );
 }
 
-void JsonBag::setFilepath( const fs::path & path )
+void JsonBag::loadVarsThreadFn( gl::ContextRef context )
 {
-	if( ! mJsonFilePath.empty() ) {
-		if( mJsonFilePath == path ) {
-			return;
-		}
-	}
-	mJsonFilePath = path;
+	ci::ThreadSetup threadSetup;
+	context->makeCurrent();
 
-	// Create json file if it doesn't already exist.
-	if( ! fs::exists( mJsonFilePath ) ) {
-		std::ofstream oStream( mJsonFilePath.string() );
-		oStream.close();
-	}
-	if( mIsLive ) {
-		wd::watch( mJsonFilePath, [this]( const fs::path &absolutePath ) {
-			this->load();
-		} );
+	std::map<std::string, std::unordered_set<std::string>> mVarsToReplace;
+
+	while( ! mShouldQuit ) {
+		try {
+			fs::path newPath;
+			if( mAsyncFilepath.tryPopBack( &newPath ) ) {
+				mVarsToReplace.clear();
+
+				std::lock_guard<std::mutex> lock{ mMutex };
+				//for( const auto& group : mItems ) {
+				//	std::unordered_set<std::string> emptySet;
+				//	mVarsToReplace.emplace( group.first, emptySet );
+				//	for( const auto& kv : group.second ) {
+				//		mVarsToReplace.at( group.first ).emplace( kv.first );
+				//	}
+				//}
+
+
+				JsonTree doc( loadFile( mJsonFilePath ) );
+
+				if( doc.hasChild( "version" ) ) {
+					mVersion = doc.getChild( "version" ).getValue<int>();
+				}
+
+				for( JsonTree::ConstIter groupIt = doc.begin(); groupIt != doc.end(); ++groupIt ) {
+					auto& jsonGroup = *groupIt;
+					auto groupName = jsonGroup.getKey();
+					if( mItems.count( groupName ) ) {
+						auto groupItems = mItems.at( groupName );
+						for( JsonTree::ConstIter item = jsonGroup.begin(); item != jsonGroup.end(); ++item ) {
+							const auto& name = item->getKey();
+							if( groupItems.count( name ) ) {
+								groupItems.at( name )->asyncLoad( item );
+							}
+							else {
+								CI_LOG_E( "No item named " + name );
+							}
+						}
+					}
+					else if( groupName != "version" ) {
+						CI_LOG_E( "No group named " + groupName );
+					}
+				}
+
+			}
+		}
+		catch( const ci::Exception &exc ) {
+			CI_LOG_EXCEPTION( "", exc );
+		}
+		std::this_thread::sleep_for( std::chrono::milliseconds( 50 ) );
 	}
 }
 
 void JsonBag::emplace( VarBase* var, const std::string &name, const std::string groupName )
 {
+	std::lock_guard<std::mutex> lock( mMutex );
+
 	if( mItems[groupName].count( name ) ) {
 		CI_LOG_E( "Bag already contains '" + name + "' in group '" + groupName + "', not adding." );
 		return;
@@ -63,6 +108,8 @@ void JsonBag::removeTarget( void *target )
 	if( ! target )
 		return;
 	
+	std::lock_guard<std::mutex> lock( mMutex );
+
 	for( auto& kv : mItems ) {
 		const auto& groupName = kv.first;
 		auto& group = kv.second;
@@ -87,7 +134,7 @@ void JsonBag::save() const
 	CI_ASSERT( fs::is_regular_file( mJsonFilePath ) );
 
 	JsonTree doc;
-	for( auto& group : mItems ) {
+	for( const auto& group : mItems ) {
 		JsonTree jsonGroup = JsonTree::makeArray( group.first );
 		for( const auto& item : group.second ) {
 			item.second->save( item.first, &jsonGroup );
@@ -98,16 +145,32 @@ void JsonBag::save() const
 	doc.write( writeFile( mJsonFilePath ), JsonTree::WriteOptions() );
 }
 
-void JsonBag::load()
+void JsonBag::load( const fs::path & path )
 {
+	mJsonFilePath = path;
+
 	if( ! fs::exists( mJsonFilePath ) )
 		return;
-	
+
 	try {
 		JsonTree doc( loadFile( mJsonFilePath ) );
 
 		if( doc.hasChild( "version" ) ) {
 			mVersion = doc.getChild( "version" ).getValue<int>();
+		}
+
+		for( auto& groupKv : mItems ) {
+			std::string groupName = groupKv.first;
+			if( doc.hasChild( groupName ) ) {
+				auto groupJson = doc.getChild( groupName );
+				for( auto& valueKv : groupKv.second ) {
+					std::string valueName = valueKv.first;
+					if( groupJson.hasChild( valueName ) ) {
+						auto valueJson = groupJson.getChild( valueKv.first );
+
+					}
+				}
+			}
 		}
 
 		for( JsonTree::ConstIter groupIt = doc.begin(); groupIt != doc.end(); ++groupIt ) {
@@ -133,6 +196,16 @@ void JsonBag::load()
 		CI_LOG_E( "Failed to parse json file." );
 	}
 	mIsLoaded = true;
+}
+
+void JsonBag::asyncLoad( const fs::path & path )
+{
+	if( !fs::exists( mJsonFilePath ) )
+		return;
+
+	mJsonFilePath = path;
+
+	mAsyncFilepath.pushFront( mJsonFilePath );
 }
 
 void JsonBag::unwatch()
@@ -258,6 +331,13 @@ template<>
 void Var<bool>::load( ci::JsonTree::ConstIter& iter )
 {
 	update( iter->getValue<bool>() );
+}
+
+template<>
+void Var<bool>::asyncLoad( ci::JsonTree::ConstIter& iter )
+{
+	mNextValue = iter->getValue<bool>();
+	mReadyForSwap = true;
 }
 
 template<>

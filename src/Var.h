@@ -5,6 +5,11 @@
 #include "cinder/Utilities.h"
 
 #include <map>
+#include <atomic>
+
+#include "cinder/gl/gl.h"
+#include "cinder/Thread.h"
+#include "cinder/ConcurrentCircularBuffer.h"
 
 #include "Watchdog.h"
 
@@ -16,15 +21,19 @@ namespace cinder {
 	class JsonBag;
 	class VarBase;
 	template<typename T> class Var;
+
+	typedef std::map<std::string, std::map<std::string, VarBase*>> VarMap;
 	
 	JsonBag* bag();
 	
 	class JsonBag : public ci::Noncopyable {
 	public:
 		const fs::path& getFilepath() const { return mJsonFilePath; }
-		void setFilepath( const fs::path& path );
+
 		void save() const;
-		void load();
+		void load( const fs::path& path );
+		void asyncLoad( const fs::path& path );
+		
 		void unwatch();
 
 		void setIsLive( bool live );
@@ -34,9 +43,12 @@ namespace cinder {
 		void setVersion( int version ) { mVersion = version; }
 		bool isLoaded() const { return mIsLoaded; }
 
-		const std::map<std::string, std::map<std::string, VarBase*>>& getItems() const { return mItems; }
+		const VarMap& getItems() const { return mItems; }
 	private:
 		JsonBag();
+
+		void loadVarsThreadFn( ci::gl::ContextRef context );
+
 		
 		void emplace( VarBase* var, const std::string& name, const std::string groupName );
 		void removeTarget( void* target );
@@ -44,12 +56,18 @@ namespace cinder {
 		static std::unique_ptr<JsonBag>	mInstance;
 		static std::once_flag			mOnceFlag;
 		
-		std::map<std::string, std::map<std::string, VarBase*>> mItems;
-		ci::fs::path	mJsonFilePath;
-		int				mVersion;
-		bool			mIsLoaded;
+		VarMap				mItems;
+		ci::fs::path		mJsonFilePath;
+		std::atomic<int>	mVersion;
+		std::atomic<bool>	mIsLoaded;
 
 		bool			mIsLive;
+
+		ci::ConcurrentCircularBuffer<ci::fs::path> mAsyncFilepath;
+		std::mutex						mMutex;
+		std::shared_ptr<std::thread>	mThread;
+
+		std::atomic<bool>				mShouldQuit;
 		
 		friend JsonBag* ci::bag();
 		friend class VarBase;
@@ -71,6 +89,7 @@ namespace cinder {
 		virtual bool draw( const std::string& name ) = 0;
 		virtual void save( const std::string& name, ci::JsonTree* tree ) const = 0;
 		virtual void load( ci::JsonTree::ConstIter& iter ) = 0;
+		virtual void asyncLoad( ci::JsonTree::ConstIter& iter ) = 0;
 	protected:
 		std::function<void()>	mUpdateFn;
 
@@ -84,8 +103,8 @@ namespace cinder {
 		Var( const T& value, const std::string& name, const std::string& groupName = "default", float min = 0.0f, float max = 1.0f )
 		: VarBase{ &mValue }
 		, mValue( value )
-		, mMin{ min }
-		, mMax{ max }
+		, mValueRange{ min, max }
+		, mReadyForSwap{ false }
 		{
 			ci::bag()->emplace( this, name, groupName );
 		}
@@ -116,9 +135,14 @@ namespace cinder {
 #endif
 		virtual void save( const std::string& name, ci::JsonTree* tree ) const override;
 		virtual void load( ci::JsonTree::ConstIter& iter ) override;
+		virtual void asyncLoad( ci::JsonTree::ConstIter& iter ) override;
 	
 		T						mValue;
-		float					mMin, mMax;
+		T						mNextValue;
+		std::atomic<bool>		mReadyForSwap;
+
+
+		std::pair<float, float>	mValueRange;
 		friend class JsonBag;
 	};
 } //namespace live
