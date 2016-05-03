@@ -8,23 +8,15 @@
 
 using namespace ci;
 
-std::unique_ptr<JsonBag> JsonBag::mInstance = nullptr;
-std::once_flag JsonBag::mOnceFlag;
-
-JsonBag* ci::bag()
+JsonBag& ci::bag()
 {
-	std::call_once( JsonBag::mOnceFlag,
-		[] {
-			JsonBag::mInstance.reset( new JsonBag );
-		} );
-	
-	return JsonBag::mInstance.get();
+	static JsonBag instance;
+	return instance;
 }
 
 JsonBag::JsonBag()
 : mVersion{ 0 }
 , mIsLoaded{ false }
-, mIsLive{ false }
 , mShouldQuit{ false }
 , mAsyncFilepath{ 1 }
 {
@@ -32,67 +24,72 @@ JsonBag::JsonBag()
 	mThread = std::shared_ptr<std::thread>( new std::thread( bind( &JsonBag::loadVarsThreadFn, this, backgroundCtx ) ) );
 }
 
+void JsonBag::cleanup()
+{
+	mShouldQuit = true;
+	mThread->join();
+	mAsyncFilepath.cancel();	
+}
+
 void JsonBag::loadVarsThreadFn( gl::ContextRef context )
 {
 	ci::ThreadSetup threadSetup;
 	context->makeCurrent();
 
-	std::map<std::string, std::unordered_set<std::string>> mVarsToReplace;
-
 	while( ! mShouldQuit ) {
 		try {
 			fs::path newPath;
 			if( mAsyncFilepath.tryPopBack( &newPath ) ) {
-				mVarsToReplace.clear();
 
-				std::lock_guard<std::mutex> lock{ mMutex };
-				//for( const auto& group : mItems ) {
-				//	std::unordered_set<std::string> emptySet;
-				//	mVarsToReplace.emplace( group.first, emptySet );
-				//	for( const auto& kv : group.second ) {
-				//		mVarsToReplace.at( group.first ).emplace( kv.first );
-				//	}
-				//}
-
-
-				JsonTree doc( loadFile( mJsonFilePath ) );
+				JsonTree doc( loadFile( newPath ) );
 
 				if( doc.hasChild( "version" ) ) {
 					mVersion = doc.getChild( "version" ).getValue<int>();
 				}
 
-				for( JsonTree::ConstIter groupIt = doc.begin(); groupIt != doc.end(); ++groupIt ) {
-					auto& jsonGroup = *groupIt;
-					auto groupName = jsonGroup.getKey();
-					if( mItems.count( groupName ) ) {
-						auto groupItems = mItems.at( groupName );
-						for( JsonTree::ConstIter item = jsonGroup.begin(); item != jsonGroup.end(); ++item ) {
-							const auto& name = item->getKey();
-							if( groupItems.count( name ) ) {
-								groupItems.at( name )->asyncLoad( item );
+				std::lock_guard<std::mutex> lock{ mItemsMutex };
+				for( auto& groupKv : mItems ) {
+					std::string groupName = groupKv.first;
+					if( doc.hasChild( groupName ) ) {
+						auto groupJson = doc.getChild( groupName );
+						for( auto& valueKv : groupKv.second ) {
+							std::string valueName = valueKv.first;
+							if( groupJson.hasChild( valueName ) ) {
+								auto tree = groupJson.getChild( valueKv.first );
+								valueKv.second->asyncLoad( tree );
 							}
 							else {
-								CI_LOG_E( "No item named " + name );
+								CI_LOG_E( "No item named " + valueName );
 							}
 						}
 					}
-					else if( groupName != "version" ) {
+					else {
 						CI_LOG_E( "No group named " + groupName );
 					}
 				}
 
+				// we need to wait on a fence before alerting the primary thread that the Texture is ready
+				auto fence = gl::Sync::create();
+				fence->clientWaitSync();
+
+				glFlush();
+				glFinish();
+
+				app::App::get()->dispatchAsync( [this]() {
+					swapUpdateAll();
+				} );
 			}
 		}
 		catch( const ci::Exception &exc ) {
 			CI_LOG_EXCEPTION( "", exc );
 		}
-		std::this_thread::sleep_for( std::chrono::milliseconds( 50 ) );
+		std::this_thread::sleep_for( std::chrono::milliseconds( 10 ) );
 	}
 }
 
 void JsonBag::emplace( VarBase* var, const std::string &name, const std::string groupName )
 {
-	std::lock_guard<std::mutex> lock( mMutex );
+	std::lock_guard<std::mutex> lock( mItemsMutex );
 
 	if( mItems[groupName].count( name ) ) {
 		CI_LOG_E( "Bag already contains '" + name + "' in group '" + groupName + "', not adding." );
@@ -108,7 +105,7 @@ void JsonBag::removeTarget( void *target )
 	if( ! target )
 		return;
 	
-	std::lock_guard<std::mutex> lock( mMutex );
+	std::lock_guard<std::mutex> lock( mItemsMutex );
 
 	for( auto& kv : mItems ) {
 		const auto& groupName = kv.first;
@@ -141,6 +138,7 @@ void JsonBag::save() const
 		}
 		doc.pushBack( jsonGroup );
 	}
+
 	doc.addChild( JsonTree{ "version", mVersion } );
 	doc.write( writeFile( mJsonFilePath ), JsonTree::WriteOptions() );
 }
@@ -159,6 +157,7 @@ void JsonBag::load( const fs::path & path )
 			mVersion = doc.getChild( "version" ).getValue<int>();
 		}
 
+		std::lock_guard<std::mutex> lock{ mItemsMutex };
 		for( auto& groupKv : mItems ) {
 			std::string groupName = groupKv.first;
 			if( doc.hasChild( groupName ) ) {
@@ -166,28 +165,15 @@ void JsonBag::load( const fs::path & path )
 				for( auto& valueKv : groupKv.second ) {
 					std::string valueName = valueKv.first;
 					if( groupJson.hasChild( valueName ) ) {
-						auto valueJson = groupJson.getChild( valueKv.first );
-
+						auto tree = groupJson.getChild( valueKv.first );
+						valueKv.second->load( tree );
+					}
+					else {
+						CI_LOG_E( "No item named " + valueName );
 					}
 				}
 			}
-		}
-
-		for( JsonTree::ConstIter groupIt = doc.begin(); groupIt != doc.end(); ++groupIt ) {
-			auto& jsonGroup = *groupIt;
-			auto groupName = jsonGroup.getKey();
-			if( mItems.count( groupName ) ) {
-				auto groupItems = mItems.at( groupName );
-				for( JsonTree::ConstIter item = jsonGroup.begin(); item != jsonGroup.end(); ++item ) {
-					const auto& name = item->getKey();
-					if( groupItems.count( name ) ) {
-						groupItems.at( name )->load( item );
-					} else {
-						CI_LOG_E( "No item named " + name );
-					}
-				}
-			}
-			else if( groupName != "version" ) {
+			else {
 				CI_LOG_E( "No group named " + groupName );
 			}
 		}
@@ -208,21 +194,15 @@ void JsonBag::asyncLoad( const fs::path & path )
 	mAsyncFilepath.pushFront( mJsonFilePath );
 }
 
-void JsonBag::unwatch()
+void JsonBag::swapUpdateAll()
 {
-	if( mIsLive ) {
-		wd::unwatch( mJsonFilePath );
+	std::lock_guard<std::mutex> lock{ mItemsMutex };
+	for( auto& groupKv : mItems ) {
+		for( auto& varKv : groupKv.second ) {
+			varKv.second->asyncUpdate();
+		}
 	}
 }
-
-void JsonBag::setIsLive( bool live )
-{
-	mIsLive = live;
-	if( ! mIsLive ) {
-		wd::unwatchAll();
-	}
-}
-
 
 VarBase::VarBase( void *target )
 	: mVoidPtr( target ), mOwner( nullptr )
@@ -328,87 +308,154 @@ void Var<std::string>::save( const std::string& name, ci::JsonTree* tree ) const
 }
 
 template<>
-void Var<bool>::load( ci::JsonTree::ConstIter& iter )
+void Var<bool>::load( const JsonTree& tree )
 {
-	update( iter->getValue<bool>() );
+	update( tree.getValue<bool>() );
 }
 
 template<>
-void Var<bool>::asyncLoad( ci::JsonTree::ConstIter& iter )
+void Var<bool>::asyncLoad( const JsonTree& tree )
 {
-	mNextValue = iter->getValue<bool>();
-	mReadyForSwap = true;
+	mNextValue = tree.getValue<bool>();
 }
 
 template<>
-void Var<int>::load( ci::JsonTree::ConstIter& iter )
+void Var<int>::load( const JsonTree& tree )
 {
-	update( iter->getValue<int>() );
+	update( tree.getValue<int>() );
 }
 
 template<>
-void Var<float>::load( ci::JsonTree::ConstIter& iter )
+void Var<int>::asyncLoad( const JsonTree& tree )
 {
-	update( iter->getValue<float>() );
+	mNextValue = tree.getValue<int>();
 }
 
 template<>
-void Var<glm::vec2>::load( ci::JsonTree::ConstIter& iter )
+void Var<float>::load( const JsonTree& tree )
+{
+	update( tree.getValue<float>() );
+}
+
+template<>
+void Var<float>::asyncLoad( const JsonTree& tree )
+{
+	mNextValue = tree.getValue<float>();
+}
+
+template<>
+void Var<glm::vec2>::load( const JsonTree& tree )
 {
 	glm::vec2 v;
-	v.x = iter->getChild( "x" ).getValue<float>();
-	v.y = iter->getChild( "y" ).getValue<float>();
+	v.x = tree.getChild( "x" ).getValue<float>();
+	v.y = tree.getChild( "y" ).getValue<float>();
 	update( v );
 }
 
 template<>
-void Var<glm::vec3>::load( ci::JsonTree::ConstIter& iter )
+void Var<glm::vec2>::asyncLoad( const JsonTree& tree )
+{
+	glm::vec2 v;
+	v.x = tree.getChild( "x" ).getValue<float>();
+	v.y = tree.getChild( "y" ).getValue<float>();
+	mNextValue = v;
+}
+
+template<>
+void Var<glm::vec3>::load( const JsonTree& tree )
 {
 	glm::vec3 v;
-	v.x = iter->getChild( "x" ).getValue<float>();
-	v.y = iter->getChild( "y" ).getValue<float>();
-	v.z = iter->getChild( "z" ).getValue<float>();
+	v.x = tree.getChild( "x" ).getValue<float>();
+	v.y = tree.getChild( "y" ).getValue<float>();
+	v.z = tree.getChild( "z" ).getValue<float>();
 	update( v );
 }
 
 template<>
-void Var<glm::vec4>::load( ci::JsonTree::ConstIter& iter )
+void Var<glm::vec3>::asyncLoad( const JsonTree& tree )
+{
+	glm::vec3 v;
+	v.x = tree.getChild( "x" ).getValue<float>();
+	v.y = tree.getChild( "y" ).getValue<float>();
+	v.z = tree.getChild( "z" ).getValue<float>();
+	mNextValue = v;
+}
+
+template<>
+void Var<glm::vec4>::load( const JsonTree& tree )
 {
 	glm::vec4 v;
-	v.x = iter->getChild( "x" ).getValue<float>();
-	v.y = iter->getChild( "y" ).getValue<float>();
-	v.z = iter->getChild( "z" ).getValue<float>();
-	v.w = iter->getChild( "w" ).getValue<float>();
+	v.x = tree.getChild( "x" ).getValue<float>();
+	v.y = tree.getChild( "y" ).getValue<float>();
+	v.z = tree.getChild( "z" ).getValue<float>();
+	v.w = tree.getChild( "w" ).getValue<float>();
 	update( v );
 }
 
 template<>
-void Var<glm::quat>::load( ci::JsonTree::ConstIter& iter )
+void Var<glm::vec4>::asyncLoad( const JsonTree& tree )
+{
+	glm::vec4 v;
+	v.x = tree.getChild( "x" ).getValue<float>();
+	v.y = tree.getChild( "y" ).getValue<float>();
+	v.z = tree.getChild( "z" ).getValue<float>();
+	v.w = tree.getChild( "w" ).getValue<float>();
+	mNextValue = v;
+}
+
+template<>
+void Var<glm::quat>::load( const JsonTree& tree )
 {
 	glm::quat q;
-	q.w = iter->getChild( "w" ).getValue<float>();
-	q.x = iter->getChild( "x" ).getValue<float>();
-	q.y = iter->getChild( "y" ).getValue<float>();
-	q.z = iter->getChild( "z" ).getValue<float>();
+	q.w = tree.getChild( "w" ).getValue<float>();
+	q.x = tree.getChild( "x" ).getValue<float>();
+	q.y = tree.getChild( "y" ).getValue<float>();
+	q.z = tree.getChild( "z" ).getValue<float>();
 	update( q );
 }
 
 template<>
-void Var<ci::Color>::load( ci::JsonTree::ConstIter& iter )
+void Var<glm::quat>::asyncLoad( const JsonTree& tree )
+{
+	glm::quat q;
+	q.w = tree.getChild( "w" ).getValue<float>();
+	q.x = tree.getChild( "x" ).getValue<float>();
+	q.y = tree.getChild( "y" ).getValue<float>();
+	q.z = tree.getChild( "z" ).getValue<float>();
+	mNextValue = q;
+}
+
+template<>
+void Var<ci::Color>::load( const JsonTree& tree )
 {
 	ci::Color c;
-	c.r = iter->getChild( "r" ).getValue<float>();
-	c.g = iter->getChild( "g" ).getValue<float>();
-	c.b = iter->getChild( "b" ).getValue<float>();
+	c.r = tree.getChild( "r" ).getValue<float>();
+	c.g = tree.getChild( "g" ).getValue<float>();
+	c.b = tree.getChild( "b" ).getValue<float>();
 	update( c );
+}
+
+template<>
+void Var<ci::Color>::asyncLoad( const JsonTree& tree )
+{
+	ci::Color c;
+	c.r = tree.getChild( "r" ).getValue<float>();
+	c.g = tree.getChild( "g" ).getValue<float>();
+	c.b = tree.getChild( "b" ).getValue<float>();
+	mNextValue = c;
 }
 
 
 template<>
-void Var<std::string>::load( ci::JsonTree::ConstIter& iter )
+void Var<std::string>::load( const JsonTree& tree )
 {
-	auto fp = iter->getValue<std::string>();
+	auto fp = tree.getValue<std::string>();
 	update( fp );
 }
 
-
+template<>
+void Var<std::string>::asyncLoad( const JsonTree& tree )
+{
+	auto fp = tree.getValue<std::string>();
+	mNextValue = fp;
+}
