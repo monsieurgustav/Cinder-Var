@@ -30,6 +30,7 @@ namespace cinder {
 		void cleanup();
 
 		void save() const;
+		void save( const fs::path& path ) const;
 		void load( const fs::path& path );
 		void asyncLoad( const fs::path& path );
 
@@ -38,9 +39,11 @@ namespace cinder {
 		bool isLoaded() const { return mIsLoaded; }
 
 		const VarMap& getItems() const { return mItems; }
-	private:
+		
+		bool isReadyForSwap() const { return mReadyForSwap; }
 		void swapUpdateAll();
-
+	private:
+		
 		JsonBag();
 
 		void loadVarsThreadFn( ci::gl::ContextRef context );
@@ -53,6 +56,7 @@ namespace cinder {
 		ci::fs::path		mJsonFilePath;
 		std::atomic<int>	mVersion;
 		std::atomic<bool>	mIsLoaded;
+		std::atomic<bool>	mReadyForSwap;
 
 		ci::ConcurrentCircularBuffer<ci::fs::path> mAsyncFilepath;
 		mutable std::mutex				mItemsMutex;
@@ -60,7 +64,7 @@ namespace cinder {
 
 		std::atomic<bool>				mShouldQuit;
 		
-		friend JsonBag& ci::bag();
+		friend JsonBag& cinder::bag();
 		friend class VarBase;
 		template<typename T> friend class Var;
 	};

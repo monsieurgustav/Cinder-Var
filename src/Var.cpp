@@ -18,6 +18,7 @@ JsonBag::JsonBag()
 : mVersion{ 0 }
 , mIsLoaded{ false }
 , mShouldQuit{ false }
+, mReadyForSwap{ false }
 , mAsyncFilepath{ 1 }
 {
 	gl::ContextRef backgroundCtx = gl::Context::create( gl::context() );
@@ -75,9 +76,7 @@ void JsonBag::loadVarsThreadFn( gl::ContextRef context )
 				glFlush();
 				glFinish();
 
-				app::App::get()->dispatchAsync( [this]() {
-					swapUpdateAll();
-				} );
+				mReadyForSwap = true;
 			}
 		}
 		catch( const ci::Exception &exc ) {
@@ -129,7 +128,11 @@ void JsonBag::removeTarget( void *target )
 void JsonBag::save() const
 {
 	CI_ASSERT( fs::is_regular_file( mJsonFilePath ) );
+	save( mJsonFilePath );
+}
 
+void JsonBag::save( const fs::path& path ) const
+{
 	JsonTree doc;
 	for( const auto& group : mItems ) {
 		JsonTree jsonGroup = JsonTree::makeArray( group.first );
@@ -140,7 +143,7 @@ void JsonBag::save() const
 	}
 
 	doc.addChild( JsonTree{ "version", mVersion } );
-	doc.write( writeFile( mJsonFilePath ), JsonTree::WriteOptions() );
+	doc.write( writeFile( path ), JsonTree::WriteOptions() );
 }
 
 void JsonBag::load( const fs::path & path )
@@ -196,10 +199,13 @@ void JsonBag::asyncLoad( const fs::path & path )
 
 void JsonBag::swapUpdateAll()
 {
-	std::lock_guard<std::mutex> lock{ mItemsMutex };
-	for( auto& groupKv : mItems ) {
-		for( auto& varKv : groupKv.second ) {
-			varKv.second->asyncUpdate();
+	if( mReadyForSwap ) {
+		mReadyForSwap = false;
+		std::lock_guard<std::mutex> lock{ mItemsMutex };
+		for( auto& groupKv : mItems ) {
+			for( auto& varKv : groupKv.second ) {
+				varKv.second->asyncUpdate();
+			}
 		}
 	}
 }
