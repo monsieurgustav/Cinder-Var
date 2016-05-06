@@ -25,6 +25,11 @@ JsonBag::JsonBag()
 	mThread = std::shared_ptr<std::thread>( new std::thread( bind( &JsonBag::loadVarsThreadFn, this, backgroundCtx ) ) );
 }
 
+void JsonBag::setFilepath( const fs::path & filepath )
+{
+	mJsonFilePath = filepath;
+}
+
 void JsonBag::cleanup()
 {
 	mShouldQuit = true;

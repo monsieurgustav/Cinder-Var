@@ -26,6 +26,7 @@ namespace cinder {
 	
 	class JsonBag : public ci::Noncopyable {
 	public:
+		void setFilepath( const fs::path& filepath );
 		const fs::path& getFilepath() const { return mJsonFilePath; }
 		void cleanup();
 
