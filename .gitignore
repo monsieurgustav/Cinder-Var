@@ -17,6 +17,7 @@ Eigen/
 *.sdf
 *.opensdf
 *.VC.opendb
+*.VC.db
 Debug/
 Release/
 ipch/

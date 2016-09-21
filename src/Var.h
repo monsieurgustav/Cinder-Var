@@ -21,35 +21,27 @@ namespace cinder {
 	template<typename T> class Var;
 
 	typedef std::map<std::string, std::map<std::string, VarBase*>> VarMap;
-	
+
 	JsonBag& bag();
 	
 	class JsonBag : public ci::Noncopyable {
 	public:
 		void setFilepath( const fs::path& filepath );
-		const fs::path& getFilepath() const { return mJsonFilePath; }
-		void cleanup();
-
+		const fs::path& getFilepath() const;
+		
 		void save() const;
 		void save( const fs::path& path ) const;
 		void load( const fs::path& path );
-		void asyncLoad( const fs::path& path );
+		void loadAsync( const fs::path& path );
 
 		int getVersion() const { return mVersion; }
 		void setVersion( int version ) { mVersion = version; }
 		bool isLoaded() const { return mIsLoaded; }
 
 		const VarMap& getItems() const { return mItems; }
-		
-		bool isReadyForSwap() const { return mReadyForSwap; }
-		void swapUpdateAll();
 	private:
-		
 		JsonBag();
 
-		void loadVarsThreadFn( ci::gl::ContextRef context );
-
-		
 		void emplace( VarBase* var, const std::string& name, const std::string groupName );
 		void removeTarget( void* target );
 				
@@ -57,14 +49,8 @@ namespace cinder {
 		ci::fs::path		mJsonFilePath;
 		std::atomic<int>	mVersion;
 		std::atomic<bool>	mIsLoaded;
-		std::atomic<bool>	mReadyForSwap;
+		mutable std::mutex	mItemsMutex, mPathMutex;
 
-		ci::ConcurrentCircularBuffer<ci::fs::path> mAsyncFilepath;
-		mutable std::mutex				mItemsMutex;
-		std::shared_ptr<std::thread>	mThread;
-
-		std::atomic<bool>				mShouldQuit;
-		
 		friend JsonBag& cinder::bag();
 		friend class VarBase;
 		template<typename T> friend class Var;
@@ -85,9 +71,6 @@ namespace cinder {
 		virtual bool draw( const std::string& name ) = 0;
 		virtual void save( const std::string& name, ci::JsonTree* tree ) const = 0;
 		virtual void load( const ci::JsonTree& tree ) = 0;
-
-		virtual void asyncLoad( const ci::JsonTree& tree ) = 0;
-		virtual void asyncUpdate() = 0;
 	protected:
 		std::function<void()>	mUpdateFn;
 
@@ -101,7 +84,6 @@ namespace cinder {
 		Var( const T& value, const std::string& name, const std::string& groupName = "default", float min = 0.0f, float max = 1.0f )
 		: VarBase{ &mValue }
 		, mValue{ value }
-		, mNextValue{}
 		, mValueRange{ min, max }
 		{
 			ci::bag().emplace( this, name, groupName );
@@ -119,17 +101,11 @@ namespace cinder {
 		virtual const T&	operator()() const { return mValue; }
 	protected:
 		void update( T value ) {
-			//if( mValue != value ) {
+			if( mValue != value ) {
 				mValue = value;
 				callUpdateFn();
-			//}
+			}
 		}
-
-		virtual void asyncUpdate() override {
-			mValue = mNextValue;
-			callUpdateFn();
-		}
-
 #ifdef VAR_IMGUI
 		virtual bool draw( const std::string& name ) override;
 #else
@@ -137,11 +113,8 @@ namespace cinder {
 #endif
 		virtual void save( const std::string& name, ci::JsonTree* tree ) const override;
 		virtual void load( const ci::JsonTree& tree ) override;
-		virtual void asyncLoad( const ci::JsonTree& tree ) override;
 	
 		T						mValue;
-		T						mNextValue;
-
 		std::pair<float, float>	mValueRange;
 		friend class JsonBag;
 	};

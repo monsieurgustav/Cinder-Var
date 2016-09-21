@@ -5,6 +5,7 @@
 #include "cinder/params/Params.h"
 #include "cinder/Perlin.h"
 
+#include "Watchdog.h"
 #include "Var.h"
 
 using namespace ci;
@@ -13,7 +14,7 @@ using namespace ci::app;
 struct Disk {
 	Disk( const std::string& varGroup )
 	: mRadius{ 0.0f, "radius", varGroup }
-	, mColor{ Color{}, "color", "disk" }
+	, mColor{ Color{}, "color", varGroup }
 	, mPos{ app::getWindowSize() / 2 }
 	{
 		mRadius.setUpdateFn( []() { app::console() << "Updated disk radius!" << std::endl; } );
@@ -44,7 +45,9 @@ DemoApp::DemoApp()
 , mFriction( 0.949999988f, "friction" )
 , mSpringK( 0.0025f, "springk" )
 {
-	bag()->setFilepath( app::getAssetPath( "" ) / fs::path{ "live_vars.json" } );
+	wd::watch( "live_vars.json", [this]( const fs::path &path ) {
+		bag().load( path );
+	} );
 }
 
 void DemoApp::update()
@@ -68,10 +71,7 @@ void DemoApp::draw()
 void DemoApp::keyDown( KeyEvent event )
 {
 	if( event.getCode() == KeyEvent::KEY_s ) {
-		bag()->save();
-	}
-	else if( event.getCode() == KeyEvent::KEY_l ) {
-		bag()->load();
+		bag().save();
 	}
 	else if( event.getCode() == KeyEvent::KEY_r ) {
 		mDisk.mPos = vec2( app::getWindowSize() / 2 );
