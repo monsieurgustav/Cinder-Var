@@ -193,6 +193,15 @@ void Var<float>::save( const std::string& name, ci::JsonTree* tree ) const
 }
 
 template<>
+void Var<glm::ivec2>::save(const std::string& name, ci::JsonTree* tree) const
+{
+	auto v = ci::JsonTree::makeArray(name);
+	v.pushBack(ci::JsonTree("x", ci::toString(mValue.x)));
+	v.pushBack(ci::JsonTree("y", ci::toString(mValue.y)));
+	tree->addChild(v);
+}
+
+template<>
 void Var<glm::vec2>::save( const std::string& name, ci::JsonTree* tree ) const
 {
 	auto v = ci::JsonTree::makeArray( name );
@@ -267,6 +276,15 @@ template<>
 void Var<float>::load( const JsonTree& tree )
 {
 	update( tree.getValue<float>() );
+}
+
+template<>
+void Var<glm::ivec2>::load(const JsonTree& tree)
+{
+	glm::ivec2 v;
+	v.x = tree.getChild("x").getValue<int>();
+	v.y = tree.getChild("y").getValue<int>();
+	update(v);
 }
 
 template<>
