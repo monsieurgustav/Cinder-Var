@@ -1,10 +1,13 @@
 #include "Var.h"
+#include "DynamicVarContainer.h"
 #include "cinder/Filesystem.h"
 #include <fstream>
 
 #include <unordered_set>
 
 #include "cinder/app/App.h"
+
+static const char * DYNAMIC_OBJECTS_TAG = "__dynamics__";
 
 using namespace ci;
 
@@ -30,6 +33,12 @@ const fs::path & cinder::JsonBag::getFilepath() const
 {
 	std::lock_guard<std::mutex> lock( mPathMutex );
 	return mJsonFilePath;
+}
+
+void cinder::JsonBag::addDynamicVarContainer(std::string name, IDynamicVarContainer * container)
+{
+	std::lock_guard<std::mutex> lock( mFactoryProviderMutex );
+	mDynamicVarContainers.emplace(std::move(name), container);
 }
 
 void JsonBag::emplace( VarBase* var, const std::string &name, const std::string groupName )
@@ -85,6 +94,33 @@ void JsonBag::save() const
 void JsonBag::save( const fs::path& path ) const
 {
 	JsonTree doc;
+
+	{
+		std::lock_guard<std::mutex> lock(mFactoryProviderMutex);
+		if(!mDynamicVarContainers.empty())
+		{
+			JsonTree root = JsonTree::makeObject(DYNAMIC_OBJECTS_TAG);
+			for(const auto & item : mDynamicVarContainers)
+			{
+				const auto & name = item.first;
+				const auto & container = item.second;
+				JsonTree objectList = JsonTree::makeArray(name);
+
+				for(const auto& item : container->getContentForSave())
+				{
+					const auto & typeName = JsonTree {"type", item.typeName};
+					const auto & name = JsonTree {"name", item.name};
+					JsonTree jsonItem;
+					jsonItem.addChild(typeName);
+					jsonItem.addChild(name);
+					objectList.addChild(jsonItem);
+				}
+				root.addChild(objectList);
+			}
+			doc.addChild(root);
+		}
+	}
+
 	for( const auto& group : mItems ) {
 		JsonTree jsonGroup = JsonTree::makeArray( group.first );
 		for( const auto& item : group.second ) {
@@ -112,6 +148,42 @@ void JsonBag::load( const fs::path & path )
 
 		if( doc.hasChild( "version" ) ) {
 			mVersion = doc.getChild( "version" ).getValue<int>();
+		}
+
+		if(doc.hasChild(DYNAMIC_OBJECTS_TAG))
+		{
+			CI_ASSERT_MSG(ci::app::isMainThread(), "Dynamic objects do not support async load");
+
+			std::lock_guard<std::mutex> lock(mFactoryProviderMutex);
+			if(!mDynamicVarContainers.empty())
+			{
+				for(const auto & dynamic : doc.getChild(DYNAMIC_OBJECTS_TAG))
+				{
+					const auto & dynamicName = dynamic.getKey();
+
+					const auto & dynamicIt = mDynamicVarContainers.find(dynamicName);
+					//const auto & factory = mFactoryProvider->get(factoryName);
+					if(dynamicIt == mDynamicVarContainers.end())
+					{
+						CI_LOG_E( "No dynamic var container for " + dynamicName );
+						continue;
+					}
+					const auto & container = dynamicIt->second;
+
+					std::vector<IDynamicVarContainer::TypeAndName> content;
+					for(const auto & item : dynamic.getChildren())
+					{
+						const auto & typeName = item.getValueForKey("type");
+						const auto & name = item.getValueForKey("name");
+						content.push_back({typeName, name});
+					}
+					container->loadContent(content);
+				}
+			}
+			else
+			{
+				CI_LOG_E( "No dynamic var container provided" );
+			}
 		}
 
 		std::lock_guard<std::mutex> lock{ mItemsMutex };

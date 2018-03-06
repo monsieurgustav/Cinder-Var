@@ -19,6 +19,8 @@ namespace cinder {
 	class JsonBag;
 	class VarBase;
 	template<typename T> class Var;
+	template<typename T> class DynamicVar;
+	struct IDynamicVarContainer;
 
 	typedef std::map<std::string, std::map<std::string, VarBase*>> VarMap;
 
@@ -34,6 +36,8 @@ namespace cinder {
 		void load( const fs::path& path );
 		void loadAsync( const fs::path& path );
 
+		void addDynamicVarContainer(std::string name, IDynamicVarContainer * container);
+
 		int getVersion() const { return mVersion; }
 		void setVersion( int version ) { mVersion = version; }
 		bool isLoaded() const { return mIsLoaded; }
@@ -47,13 +51,15 @@ namespace cinder {
 				
 		VarMap				mItems;
 		ci::fs::path		mJsonFilePath;
+		std::unordered_map<std::string, IDynamicVarContainer *> mDynamicVarContainers;
 		std::atomic<int>	mVersion;
 		std::atomic<bool>	mIsLoaded;
-		mutable std::mutex	mItemsMutex, mPathMutex;
+		mutable std::mutex	mItemsMutex, mPathMutex, mFactoryProviderMutex;
 
 		friend JsonBag& cinder::bag();
 		friend class VarBase;
 		template<typename T> friend class Var;
+		template<typename T> friend class DynamicVar;
 	};
 	
 	class VarBase {
