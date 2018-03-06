@@ -202,6 +202,27 @@ void Var<glm::ivec2>::save(const std::string& name, ci::JsonTree* tree) const
 }
 
 template<>
+void Var<glm::ivec3>::save(const std::string& name, ci::JsonTree* tree) const
+{
+	auto v = ci::JsonTree::makeArray(name);
+	v.pushBack(ci::JsonTree("x", ci::toString(mValue.x)));
+	v.pushBack(ci::JsonTree("y", ci::toString(mValue.y)));
+	v.pushBack(ci::JsonTree("z", ci::toString(mValue.z)));
+	tree->addChild(v);
+}
+
+template<>
+void Var<glm::ivec4>::save(const std::string& name, ci::JsonTree* tree) const
+{
+	auto v = ci::JsonTree::makeArray(name);
+	v.pushBack(ci::JsonTree("x", ci::toString(mValue.x)));
+	v.pushBack(ci::JsonTree("y", ci::toString(mValue.y)));
+	v.pushBack(ci::JsonTree("z", ci::toString(mValue.z)));
+	v.pushBack(ci::JsonTree("w", ci::toString(mValue.w)));
+	tree->addChild(v);
+}
+
+template<>
 void Var<glm::vec2>::save( const std::string& name, ci::JsonTree* tree ) const
 {
 	auto v = ci::JsonTree::makeArray( name );
@@ -284,6 +305,27 @@ void Var<glm::ivec2>::load(const JsonTree& tree)
 	glm::ivec2 v;
 	v.x = tree.getChild("x").getValue<int>();
 	v.y = tree.getChild("y").getValue<int>();
+	update(v);
+}
+
+template<>
+void Var<glm::ivec3>::load(const JsonTree& tree)
+{
+	glm::ivec3 v;
+	v.x = tree.getChild("x").getValue<int>();
+	v.y = tree.getChild("y").getValue<int>();
+	v.z = tree.getChild("z").getValue<int>();
+	update(v);
+}
+
+template<>
+void Var<glm::ivec4>::load(const JsonTree& tree)
+{
+	glm::ivec4 v;
+	v.x = tree.getChild("x").getValue<int>();
+	v.y = tree.getChild("y").getValue<int>();
+	v.z = tree.getChild("z").getValue<int>();
+	v.w = tree.getChild("w").getValue<int>();
 	update(v);
 }
 
