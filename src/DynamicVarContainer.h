@@ -135,6 +135,23 @@ namespace cinder {
 			}
 		}
 
+		Object* add(const std::string & typeName, const std::string & name)
+		{
+			auto object = createImpl(typeName, name);
+			if(!object)
+			{
+				// the factory cannot create "typeName" objects
+				CI_LOG_E( "Cannot create dynamic object for type name: " + typeName );
+				return nullptr;
+			}
+
+			const auto & objectPtr = object.get();
+			_mappedByName.emplace(name, objectPtr);
+			_content[{typeName, name}] = std::move(object);
+			Created.emit(objectPtr, typeName, name);
+			return objectPtr;
+		}
+
 		ci::signals::Signal<void(Object *, const std::string & typeName, const std::string & name)> Created;
 		ci::signals::Signal<void(Object *, const std::string & typeName, const std::string & name)> Destroyed;
 

@@ -39,14 +39,21 @@ namespace cinder
 		
 		operator T*() const { return mValue; }
 		
+		DynamicVar& operator=( const std::string & name )
+		{
+			mSerializedValue = name;
+			update( mContainer->get( name ) );
+			return *this;
+		}
+		T* value() const { return mValue; }
+		T* operator()() const { return mValue; }
+	protected:
 		DynamicVar& operator=( T * value )
 		{
 			update( value );
 			return *this;
-		}		
-		T* value() const { return mValue; }
-		T* operator()() const { return mValue; }
-	protected:
+		}
+
 		void update( T * value ) {
 			if( mValue != value ) {
 				mValue = value;
