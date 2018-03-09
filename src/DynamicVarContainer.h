@@ -115,6 +115,11 @@ namespace cinder {
 			}
 		}
 
+		bool empty() const
+		{
+			return _content.empty();
+		}
+
 		Object* get(const std::string & name) const
 		{
 			const auto it = _mappedByName.find(name);
