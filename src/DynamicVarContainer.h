@@ -137,36 +137,61 @@ namespace cinder {
 	/**
 	 * An implementation of IDynamicVarContainer that instantiates T.
 	 */
-	template <class T>
+	template <class T, class ...Param>
 	struct SimpleDynamicVarContainer : DynamicVarContainer<T>
 	{
+		SimpleDynamicVarContainer(const Param &... p)
+			: _params(p...)
+		{
+		}
+
 	protected:
 		ObjectRef createImpl(const std::string & typeName, const std::string & name) const override
 		{
-			return std::make_unique<T>(name);
+			using ParamsIndices = std::make_integer_sequence<int, sizeof...(Param)>;
+			return createImplUnpack(typeName, name, ParamsIndices {});
 		}
+
+	private:
+		template <int ...I>
+		ObjectRef createImplUnpack(const std::string & typeName, const std::string & name, std::integer_sequence<int, I...>) const
+		{
+			return std::make_unique<T>(name, std::get<I>(_params)...);
+		}
+
+		std::tuple<Param...> _params;
 	};
 
 	/**
 	 * An implementation of IDynamicVarContainer that takes a factory
 	 * function to create sub objects of T.
 	 */
-	template <class T>
+	template <class T, class ...Param>
 	struct FactoryDynamicVarContainer : DynamicVarContainer<T>
 	{
-		using Factory = std::function<ObjectRef(const std::string& typeName, const std::string& name)>;
+		using Factory = std::function<ObjectRef(const std::string& typeName, const std::string& name, const Param &...)>;
 
-		FactoryDynamicVarContainer(Factory actualFactory) : _factory(std::move(actualFactory))
+		FactoryDynamicVarContainer(Factory actualFactory, const Param &... p)
+			: _params(p...)
+			, _factory(std::move(actualFactory))
 		{
 		}
 
 	protected:
 		ObjectRef createImpl(const std::string & typeName, const std::string & name) const override
 		{
-			return _factory(typeName, name);
+			using ParamsIndices = std::make_integer_sequence<int, sizeof...(Param)>;
+			return createImplUnpack(typeName, name, ParamsIndices {});
 		}
 
 	private:
+		template <int ...I>
+		ObjectRef createImplUnpack(const std::string & typeName, const std::string & name, std::integer_sequence<int, I...>) const
+		{
+			return _factory(typeName, name, std::get<I>(_params)...);
+		}
+
+		std::tuple<Param...> _params;
 		Factory _factory;
 	};
 }
