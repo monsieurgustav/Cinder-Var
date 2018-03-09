@@ -173,7 +173,7 @@ void JsonBag::load( const fs::path & path )
 					std::vector<IDynamicVarContainer::TypeAndName> content;
 					for(const auto & item : dynamic.getChildren())
 					{
-						const auto & typeName = item.getValueForKey("type");
+						const auto & typeName = item.hasChild("type") ? item.getValueForKey("type") : std::string();
 						const auto & name = item.getValueForKey("name");
 						content.push_back({typeName, name});
 					}
@@ -207,8 +207,8 @@ void JsonBag::load( const fs::path & path )
 			}
 		}
 	}
-	catch( const JsonTree::ExcJsonParserError& )  {
-		CI_LOG_E( "Failed to parse json file." );
+	catch( const JsonTree::ExcJsonParserError& exc )  {
+		CI_LOG_E( "Failed to parse json file.\n" + std::string(exc.what()) );
 	}
 	mIsLoaded = true;
 }

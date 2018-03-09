@@ -2,6 +2,7 @@
 
 #include <cinder/Cinder.h>
 #include <cinder/Signals.h>
+#include <cinder/Log.h>
 
 #include <unordered_map>
 
@@ -83,7 +84,13 @@ namespace cinder {
 				{
 					// no object with that type and name
 					value = createImpl(item.typeName, item.name);
-					
+					if(!value)
+					{
+						// the factory cannot create "typeName" objects
+						CI_LOG_E( "Cannot create dynamic object for type name: " + item.typeName );
+						continue;
+					}
+
 					_mappedByName.emplace(item.name, value.get());
 					Created.emit(value.get(), item.typeName, item.name);
 				}
