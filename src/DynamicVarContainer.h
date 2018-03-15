@@ -76,6 +76,8 @@ namespace cinder {
 			using std::swap;
 			swap(toRemove, _content);
 
+			_mappedByName.clear();
+
 			for(const auto & item : newContent)
 			{
 				ObjectRef value;
@@ -91,7 +93,7 @@ namespace cinder {
 						continue;
 					}
 
-					_mappedByName.emplace(item.name, value.get());
+					_mappedByName.emplace(item.name, value.get());  // add it before Created is emitted
 					Created.emit(value.get(), item.typeName, item.name);
 				}
 				else
@@ -99,6 +101,8 @@ namespace cinder {
 					// reuse existing object
 					value = std::move(it->second);
 					toRemove.erase(it);
+
+					_mappedByName.emplace(item.name, value.get());
 				}
 
 				_content[item] = std::move(value);
@@ -106,11 +110,6 @@ namespace cinder {
 
 			for(const auto & itemToRemove : toRemove)
 			{
-				const auto & it = _mappedByName.find(itemToRemove.first.name);
-				if(it != _mappedByName.end())
-				{
-					_mappedByName.erase(it);
-				}
 				Destroyed.emit(itemToRemove.second.get(), itemToRemove.first.typeName, itemToRemove.first.name);
 			}
 		}
