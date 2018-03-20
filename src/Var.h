@@ -3,6 +3,7 @@
 #include "cinder/Json.h"
 #include "cinder/Log.h"
 #include "cinder/Utilities.h"
+#include "cinder/Signals.h"
 
 #include <map>
 #include <atomic>
@@ -69,7 +70,7 @@ namespace cinder {
 		
 		void setOwner( JsonBag *owner ) { mOwner = owner; }
 		
-		void setUpdateFn( const std::function<void()> &updateFn, bool call = false );
+		ci::signals::Connection addUpdateFn( const std::function<void()> &updateFn, bool call = false );
 		void callUpdateFn();
 		
 		void * getTarget() const { return mVoidPtr; }
@@ -78,7 +79,7 @@ namespace cinder {
 		virtual void save( const std::string& name, ci::JsonTree* tree ) const = 0;
 		virtual void load( const ci::JsonTree& tree ) = 0;
 	protected:
-		std::function<void()>	mUpdateFn;
+		ci::signals::Signal<void()>	mUpdateFn;
 
 		JsonBag*	mOwner;
 		void*		mVoidPtr;

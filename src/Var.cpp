@@ -233,17 +233,16 @@ VarBase::~VarBase()
 		mOwner->removeTarget( mVoidPtr );
 };
 
-void VarBase::setUpdateFn( const std::function<void()> &updateFn, bool call )
+ci::signals::Connection VarBase::addUpdateFn( const std::function<void()> &updateFn, bool call )
 {
-	mUpdateFn = updateFn;
 	if( call )
-		mUpdateFn();
+		updateFn();
+	return mUpdateFn.connect(updateFn);
 }
 
 void VarBase::callUpdateFn()
 {
-	if( mUpdateFn )
-		mUpdateFn();
+	mUpdateFn.emit();
 }
 
 template<>
