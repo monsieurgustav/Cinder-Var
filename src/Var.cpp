@@ -157,6 +157,13 @@ void JsonBag::load( const fs::path & path )
 			std::lock_guard<std::mutex> lock(mFactoryProviderMutex);
 			if(!mDynamicVarContainers.empty())
 			{
+				std::vector<IDynamicVarContainer *> toClear;
+				toClear.reserve(mDynamicVarContainers.size());
+				for(const auto & item : mDynamicVarContainers)
+				{
+					toClear.push_back(item.second);
+				}
+
 				for(const auto & dynamic : doc.getChild(DYNAMIC_OBJECTS_TAG))
 				{
 					const auto & dynamicName = dynamic.getKey();
@@ -178,6 +185,18 @@ void JsonBag::load( const fs::path & path )
 						content.push_back({typeName, name});
 					}
 					container->loadContent(content);
+
+					const auto toClearIt = std::find(toClear.begin(), toClear.end(), container);
+					if(toClearIt != toClear.end())
+					{
+						toClear.erase(toClearIt);
+					}
+				}
+
+				// clear unreferenced containers
+				for(const auto & container : toClear)
+				{
+					container->loadContent({});
 				}
 			}
 			else
