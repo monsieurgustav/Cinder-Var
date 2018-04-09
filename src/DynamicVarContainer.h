@@ -85,6 +85,20 @@ namespace cinder {
 				if(it == toRemove.end())
 				{
 					// no object with that type and name
+
+					// remove an existing object with the same name immediately.
+					// (because if some var name are shared between objects class, the new var will be ignored)
+					for(auto it2 = toRemove.begin(); it2 != toRemove.end(); ++it2)
+					{
+						if(it2->first.name == item.name)
+						{
+							Destroyed.emit(it2->second.get(), it2->first.typeName, it2->first.name);
+							toRemove.erase(it2);
+							break;
+						}
+					}
+
+					// create
 					value = createImpl(item.typeName, item.name);
 					if(!value)
 					{
