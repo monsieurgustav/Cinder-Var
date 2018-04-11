@@ -78,6 +78,7 @@ namespace cinder {
 		virtual bool draw( const std::string& name ) = 0;
 		virtual void save( const std::string& name, ci::JsonTree* tree ) const = 0;
 		virtual void load( const ci::JsonTree& tree ) = 0;
+		virtual void restoreDefault( ) = 0;
 	protected:
 		ci::signals::Signal<void()>	mUpdateFn;
 
@@ -92,6 +93,7 @@ namespace cinder {
 		: VarBase{ &mValue }
 		, mValue{ value }
 		, mValueRange{ min, max }
+		, mDefaultValue{ value }
 		{
 			ci::bag().emplace( this, name, groupName );
 		}
@@ -99,7 +101,7 @@ namespace cinder {
 
 		virtual operator const T&() const { return mValue; }
 		
-		virtual Var<T>& operator=( T value )
+		virtual Var<T>& operator=( const T& value )
 		{
 			update( value );
 			return *this;
@@ -107,7 +109,7 @@ namespace cinder {
 		virtual const T&	value() const { return mValue; }
 		virtual const T&	operator()() const { return mValue; }
 	protected:
-		void update( T value ) {
+		void update( const T& value ) {
 			if( mValue != value ) {
 				mValue = value;
 				callUpdateFn();
@@ -120,9 +122,13 @@ namespace cinder {
 #endif
 		virtual void save( const std::string& name, ci::JsonTree* tree ) const override;
 		virtual void load( const ci::JsonTree& tree ) override;
+		virtual void restoreDefault( ) override {
+			update( mDefaultValue );
+		}
 	
 		T						mValue;
 		std::pair<float, float>	mValueRange;
+		T						mDefaultValue;
 		friend class JsonBag;
 	};
 } //namespace live

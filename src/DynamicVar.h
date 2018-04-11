@@ -76,6 +76,11 @@ namespace cinder
 			mSerializedValue = tree.getValue();
 			update(mContainer->get(mSerializedValue));
 		}
+
+		virtual void restoreDefault() override
+		{
+			update(nullptr);
+		}
 	
 		DynamicVarContainer<T> * mContainer;
 		T* mValue = nullptr;

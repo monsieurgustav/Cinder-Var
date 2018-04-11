@@ -217,7 +217,8 @@ void JsonBag::load( const fs::path & path )
 						valueKv.second->load( tree );
 					}
 					else {
-						CI_LOG_E( "No item named " + valueName );
+						CI_LOG_I( "No item named " + valueName + ": restore default value" );
+						valueKv.second->restoreDefault();
 					}
 				}
 			}
