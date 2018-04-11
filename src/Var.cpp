@@ -371,6 +371,41 @@ void Var<std::string>::save( const std::string& name, ci::JsonTree* tree ) const
 	tree->addChild( v );
 }
 
+namespace
+{
+	template <class T>
+	std::string writeVector(const std::vector<T> & vector)
+	{
+		std::string result;
+
+		for(const auto & elem : vector)
+		{
+			if(!result.empty())
+			{
+				result += ' ';
+			}
+			result += std::to_string(elem);
+		}
+
+		return result;
+	}
+}
+
+template<>
+void Var<std::vector<float>>::save( const std::string& name, ci::JsonTree* tree ) const
+{
+	auto v = ci::JsonTree{ name, writeVector(mValue) };
+	tree->addChild( v );
+}
+
+template<>
+void Var<std::vector<int>>::save( const std::string& name, ci::JsonTree* tree ) const
+{
+	auto v = ci::JsonTree{ name, writeVector(mValue) };
+	tree->addChild( v );
+}
+
+
 template<>
 void Var<bool>::load( const JsonTree& tree )
 {
@@ -475,4 +510,40 @@ void Var<std::string>::load( const JsonTree& tree )
 {
 	auto fp = tree.getValue<std::string>();
 	update( fp );
+}
+
+namespace
+{
+	template <class T>
+	std::vector<T> parseVector(const std::string & string)
+	{
+		std::vector<T> result;
+
+		std::istringstream input(string);
+		while(!input.eof())
+		{
+			T value = T();
+			if(input >> value)
+			{
+				result.push_back(value);
+			}
+			else
+			{
+				break;
+			}
+		}
+		return result;
+	}
+}
+
+void Var<std::vector<float>>::load( const JsonTree& tree )
+{
+	auto fp = tree.getValue<std::string>();
+	update(parseVector<float>(fp));
+}
+
+void Var<std::vector<int>>::load( const JsonTree& tree )
+{
+	auto fp = tree.getValue<std::string>();
+	update(parseVector<int>(fp));
 }
