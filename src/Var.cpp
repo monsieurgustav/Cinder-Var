@@ -108,7 +108,7 @@ void JsonBag::save( const fs::path& path ) const
 
 				for(const auto& item : container->getContentForSave())
 				{
-					const auto & typeName = JsonTree {"type", item.typeName};
+					const auto & typeName = JsonTree {"type", item.typeParams};
 					const auto & name = JsonTree {"name", item.name};
 					JsonTree jsonItem;
 					jsonItem.addChild(typeName);

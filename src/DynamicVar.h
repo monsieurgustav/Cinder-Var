@@ -20,7 +20,7 @@ namespace cinder
 		{
 			ci::bag().emplace( this, name, groupName );
 
-			mContainer->Created.connect([this] (T * object, const std::string & typeName, const std::string & name)
+			mContainer->Created.connect([this] (T * object, const std::string & name)
 			{
 				if(!value() && name == mSerializedValue)
 				{

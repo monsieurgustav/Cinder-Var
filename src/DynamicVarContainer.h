@@ -30,13 +30,13 @@ namespace cinder {
 
 		struct TypeAndName
 		{
-			std::string typeName;
+			std::string typeParams;
 			std::string name;
 
 			friend bool operator< (const TypeAndName& left, const TypeAndName& right)
 			{
-				return left.typeName < right.typeName ||
-					(!(right.typeName < left.typeName) && left.name < right.name)
+				return left.name < right.name ||
+					(!(right.name < left.name) && left.typeParams < right.typeParams)
 					;
 			}
 		};
@@ -92,23 +92,23 @@ namespace cinder {
 					{
 						if(it2->first.name == item.name)
 						{
-							Destroyed.emit(it2->second.get(), it2->first.typeName, it2->first.name);
+							Destroyed.emit(it2->second.get(), it2->first.name);
 							toRemove.erase(it2);
 							break;
 						}
 					}
 
 					// create
-					value = createImpl(item.typeName, item.name);
+					value = createImpl(item.typeParams, item.name);
 					if(!value)
 					{
 						// the factory cannot create "typeName" objects
-						CI_LOG_E( "Cannot create dynamic object for type name: " + item.typeName );
+						CI_LOG_E( "Cannot create dynamic object \"" + item.name + "\" for type: " + item.typeParams );
 						continue;
 					}
 
 					_mappedByName.emplace(item.name, value.get());  // add it before Created is emitted
-					Created.emit(value.get(), item.typeName, item.name);
+					Created.emit(value.get(), item.name);
 				}
 				else
 				{
@@ -124,7 +124,7 @@ namespace cinder {
 
 			for(const auto & itemToRemove : toRemove)
 			{
-				Destroyed.emit(itemToRemove.second.get(), itemToRemove.first.typeName, itemToRemove.first.name);
+				Destroyed.emit(itemToRemove.second.get(), itemToRemove.first.name);
 			}
 		}
 
@@ -144,32 +144,32 @@ namespace cinder {
 		{
 			for(const auto & item : _content)
 			{
-				func(item.second.get(), item.first.typeName, item.first.name);
+				func(item.second.get(), item.first.typeParams, item.first.name);
 			}
 		}
 
-		Object* add(const std::string & typeName, const std::string & name)
+		Object* add(const std::string & typeParams, const std::string & name)
 		{
-			auto object = createImpl(typeName, name);
+			auto object = createImpl(typeParams, name);
 			if(!object)
 			{
 				// the factory cannot create "typeName" objects
-				CI_LOG_E( "Cannot create dynamic object for type name: " + typeName );
+				CI_LOG_E( "Cannot create dynamic object \"" + name + "\" for type: " + typeParams );
 				return nullptr;
 			}
 
 			const auto & objectPtr = object.get();
 			_mappedByName.emplace(name, objectPtr);
-			_content[{typeName, name}] = std::move(object);
-			Created.emit(objectPtr, typeName, name);
+			_content[{typeParams, name}] = std::move(object);
+			Created.emit(objectPtr, name);
 			return objectPtr;
 		}
 
-		ci::signals::Signal<void(Object *, const std::string & typeName, const std::string & name)> Created;
-		ci::signals::Signal<void(Object *, const std::string & typeName, const std::string & name)> Destroyed;
+		ci::signals::Signal<void(Object *, const std::string & name)> Created;
+		ci::signals::Signal<void(Object *, const std::string & name)> Destroyed;
 
 	protected:
-		virtual ObjectRef createImpl(const std::string & typeName, const std::string & name) const = 0;
+		virtual ObjectRef createImpl(const std::string & typeParams, const std::string & name) const = 0;
 
 	private:
 		std::map<TypeAndName, ObjectRef> _content;
@@ -188,17 +188,17 @@ namespace cinder {
 		}
 
 	protected:
-		ObjectRef createImpl(const std::string & typeName, const std::string & name) const override
+		ObjectRef createImpl(const std::string & typeParams, const std::string & name) const override
 		{
 			using ParamsIndices = std::make_integer_sequence<int, sizeof...(Param)>;
-			return createImplUnpack(typeName, name, ParamsIndices {});
+			return createImplUnpack(typeParams, name, ParamsIndices {});
 		}
 
 	private:
 		template <int ...I>
-		ObjectRef createImplUnpack(const std::string & typeName, const std::string & name, std::integer_sequence<int, I...>) const
+		ObjectRef createImplUnpack(const std::string & typeParams, const std::string & name, std::integer_sequence<int, I...>) const
 		{
-			return std::make_unique<T>(name, std::get<I>(_params)...);
+			return std::make_unique<T>(typeParams, name, std::get<I>(_params)...);
 		}
 
 		std::tuple<Param...> _params;
@@ -211,7 +211,7 @@ namespace cinder {
 	template <class T, class ...Param>
 	struct FactoryDynamicVarContainer : DynamicVarContainer<T>
 	{
-		using Factory = std::function<ObjectRef(const std::string& typeName, const std::string& name, const Param &...)>;
+		using Factory = std::function<ObjectRef(const std::string& typeParams, const std::string& name, const Param &...)>;
 
 		FactoryDynamicVarContainer(Factory actualFactory, const Param &... p)
 			: _params(p...)
@@ -220,17 +220,17 @@ namespace cinder {
 		}
 
 	protected:
-		ObjectRef createImpl(const std::string & typeName, const std::string & name) const override
+		ObjectRef createImpl(const std::string & typeParams, const std::string & name) const override
 		{
 			using ParamsIndices = std::make_integer_sequence<int, sizeof...(Param)>;
-			return createImplUnpack(typeName, name, ParamsIndices {});
+			return createImplUnpack(typeParams, name, ParamsIndices {});
 		}
 
 	private:
 		template <int ...I>
-		ObjectRef createImplUnpack(const std::string & typeName, const std::string & name, std::integer_sequence<int, I...>) const
+		ObjectRef createImplUnpack(const std::string & typeParams, const std::string & name, std::integer_sequence<int, I...>) const
 		{
-			return _factory(typeName, name, std::get<I>(_params)...);
+			return _factory(typeParams, name, std::get<I>(_params)...);
 		}
 
 		std::tuple<Param...> _params;
