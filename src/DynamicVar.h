@@ -5,6 +5,16 @@
 
 namespace cinder
 {
+	class DynamicVarBase : public VarBase {
+	public:
+		DynamicVarBase( void* target )
+		: VarBase{ target }
+		{}
+
+		virtual const std::string & objectName() const = 0;
+		virtual void setObjectName(const std::string & newName) = 0;
+	};
+
 	/**
 	 * A Var that is managed by a DynamicVarContainer for automatic creation/destruction.
 	 *
@@ -12,10 +22,10 @@ namespace cinder
 	 * JSON file.
 	 */
 	template <typename T>
-	class DynamicVar : public VarBase {
+	class DynamicVar : public DynamicVarBase {
 	public:
 		DynamicVar( DynamicVarContainer<T> * container, const std::string& name, const std::string& groupName = "default" )
-		: VarBase{ &mValue }
+		: DynamicVarBase{ &mValue }
 		, mContainer{ container }
 		{
 			ci::bag().emplace( this, name, groupName );
@@ -47,6 +57,17 @@ namespace cinder
 		}
 		T* value() const { return mValue; }
 		T* operator()() const { return mValue; }
+
+		const std::string & objectName() const override
+		{
+			return mSerializedValue;
+		}
+
+		void setObjectName(const std::string & newName) override
+		{
+			*this = newName;
+		}
+
 	protected:
 		DynamicVar& operator=( T * value )
 		{
