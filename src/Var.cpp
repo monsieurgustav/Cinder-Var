@@ -537,12 +537,14 @@ namespace
 	}
 }
 
+template <>
 void Var<std::vector<float>>::load( const JsonTree& tree )
 {
 	auto fp = tree.getValue<std::string>();
 	update(parseVector<float>(fp));
 }
 
+template <>
 void Var<std::vector<int>>::load( const JsonTree& tree )
 {
 	auto fp = tree.getValue<std::string>();

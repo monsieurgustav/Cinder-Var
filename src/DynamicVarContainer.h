@@ -182,6 +182,9 @@ namespace cinder {
 	template <class T, class ...Param>
 	struct SimpleDynamicVarContainer : DynamicVarContainer<T>
 	{
+        using typename DynamicVarContainer<T>::Object;
+        using typename DynamicVarContainer<T>::ObjectRef;
+
 		SimpleDynamicVarContainer(const Param &... p)
 			: _params(p...)
 		{
@@ -211,7 +214,10 @@ namespace cinder {
 	template <class T, class ...Param>
 	struct FactoryDynamicVarContainer : DynamicVarContainer<T>
 	{
-		using Factory = std::function<ObjectRef(const std::string& typeParams, const std::string& name, const Param &...)>;
+        using typename DynamicVarContainer<T>::Object;
+        using typename DynamicVarContainer<T>::ObjectRef;
+
+        using Factory = std::function<ObjectRef(const std::string& typeParams, const std::string& name, const Param &...)>;
 
 		FactoryDynamicVarContainer(Factory actualFactory, const Param &... p)
 			: _params(p...)
