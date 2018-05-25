@@ -1,4 +1,5 @@
 #include "Var.h"
+#include "DynamicVar.h"
 #include "DynamicVarContainer.h"
 #include "cinder/Filesystem.h"
 #include <fstream>
@@ -189,7 +190,18 @@ void JsonBag::save( const fs::path& path ) const
 	for( const auto& group : mItems ) {
 		JsonTree jsonGroup = JsonTree::makeArray( group.first );
 		for( const auto& item : group.second ) {
-			item.second->save( item.first, &jsonGroup );
+            if(auto input = item.second->getConnectedInput())
+            {
+                std::string groupName, varName;
+                const bool found = findVarName(input, &varName, &groupName);
+                assert(found);
+                const auto inputName = groupName.empty() ? varName : (groupName + '.' + varName);
+            	jsonGroup.addChild(ci::JsonTree(item.first, "=" + inputName));
+            }
+            else
+            {
+			    item.second->save( item.first, &jsonGroup );
+            }
 		}
 		doc.pushBack( jsonGroup );
 	}
@@ -279,7 +291,27 @@ void JsonBag::load( const fs::path & path )
 					std::string valueName = valueKv.first;
 					if( groupJson.hasChild( valueName ) ) {
 						auto tree = groupJson.getChild( valueKv.first );
-						valueKv.second->load( tree );
+
+                        valueKv.second->disconnect();
+
+                        const auto & value = tree.getValue();
+                        if(!value.empty() && value.front() == '=')  // is connection
+                        {
+                            const auto & varName = value.substr(1);
+                            const auto inputVar = findVar(varName);
+                            if(!inputVar)
+                            {
+                                CI_LOG_E(varName + " not found. Connection failed.");
+                            }
+                            else if(!valueKv.second->tryConnectFrom(inputVar))
+                            {
+                                CI_LOG_E(varName + " and " + groupName + "." + varName + " are not compatible. Connection failed.");
+                            }
+                        }
+                        else  // load value
+                        {
+						    valueKv.second->load( tree );
+                        }
 					}
 					else {
 						CI_LOG_I( "No item named " + valueName + ": restore default value" );
@@ -328,6 +360,102 @@ ci::signals::Connection VarBase::addUpdateFn( const std::function<void()> &updat
 void VarBase::callUpdateFn()
 {
 	mUpdateFn.emit();
+}
+
+namespace
+{
+	ci::signals::Connection tryConnect(VarBase* input, VarBase* output)
+	{
+		return {};
+	}
+	
+	template <class T, class ...Ts>
+    ci::signals::Connection tryConnect(VarBase * input, VarBase * output, const T& current, const Ts&... args)
+    {
+        if(auto typedInput = dynamic_cast<Var<T>*>(input))
+        {
+            if(auto typedOutput = dynamic_cast<Var<T>*>(output))
+            {
+                return input->addUpdateFn([typedInput, typedOutput]
+                {
+                    *typedOutput = typedInput->value();
+                }, true);
+            }
+        }
+        return tryConnect(input, output, args...);
+    }
+
+    template <class ...Ts>
+    ci::signals::Connection tryConnect(VarBase * input, VarBase * output, DynamicVarBase * current, const Ts&... args)
+    {
+        auto dynamicInput = dynamic_cast<DynamicVarBase*>(input);
+        auto dynamicOutput = dynamic_cast<DynamicVarBase*>(output);
+        if(dynamicInput || dynamicOutput)
+        {
+            if(dynamicInput && dynamicOutput)
+            {
+                return input->addUpdateFn([dynamicInput, dynamicOutput]
+                {
+                    dynamicOutput->setObjectName(dynamicInput->objectName());
+                }, true);
+            }
+            if(dynamicInput)
+            {
+                if(auto stringOutput = dynamic_cast<Var<std::string>*>(output))
+                {
+                    return input->addUpdateFn([dynamicInput, stringOutput]
+                    {
+                        *stringOutput = dynamicInput->objectName();
+                    }, true);
+                }
+            }
+            else
+            {
+                if(auto stringInput = dynamic_cast<Var<std::string>*>(input))
+                {
+                    return input->addUpdateFn([stringInput, dynamicOutput]
+                    {
+                        dynamicOutput->setObjectName(stringInput->value());
+                    }, true);
+                }
+            }
+        }
+        return tryConnect(input, output, args...);
+    }
+}
+
+bool VarBase::tryConnectFrom(VarBase * input)
+{
+    mConnection = tryConnect(input, this,
+        static_cast<DynamicVarBase*>(nullptr),
+        bool{}, float{}, int{},
+        ci::vec2{}, ci::vec3{}, ci::vec4{},
+        ci::ivec2{}, ci::ivec3{}, ci::ivec4{},
+        std::string{},
+        std::vector<int>{}, std::vector<float>{}
+        );
+
+    if(mConnection.isConnected())
+    {
+        mConnectedInput = input;
+        return true;
+    }
+    else
+    {
+        mConnectedInput = nullptr;
+        return false;
+    }
+}
+
+void VarBase::disconnect()
+{
+    mConnectedInput = nullptr;
+    mConnection.disconnect();
+}
+
+VarBase * VarBase::getConnectedInput() const
+{
+    return mConnection.isConnected() ? mConnectedInput : nullptr;
 }
 
 template<>

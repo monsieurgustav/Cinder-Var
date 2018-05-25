@@ -76,6 +76,10 @@ namespace cinder {
 		ci::signals::Connection addUpdateFn( const std::function<void()> &updateFn, bool call = false );
 		void callUpdateFn();
 		
+        bool tryConnectFrom(VarBase * input);
+        void disconnect();
+        VarBase * getConnectedInput() const;
+
 		void * getTarget() const { return mVoidPtr; }
 
 		virtual bool draw( const std::string& name ) = 0;
@@ -84,6 +88,8 @@ namespace cinder {
 		virtual void restoreDefault( ) = 0;
 	protected:
 		ci::signals::Signal<void()>	mUpdateFn;
+        ci::signals::ScopedConnection mConnection;
+        VarBase * mConnectedInput;
 
 		JsonBag*	mOwner;
 		void*		mVoidPtr;
