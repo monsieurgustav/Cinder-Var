@@ -13,6 +13,12 @@ namespace cinder
 
 		virtual const std::string & objectName() const = 0;
 		virtual void setObjectName(const std::string & newName) = 0;
+
+#ifdef VAR_IMGUI
+		virtual bool draw( const std::string& name ) override;
+#else
+		virtual bool draw( const std::string& name ) override { return false; }
+#endif
 	};
 
 	/**
@@ -80,11 +86,6 @@ namespace cinder
 				mValue = value;
 				callUpdateFn();
 			}
-		}
-
-		virtual bool draw(const std::string& name) override
-		{
-			return false;
 		}
 
 		virtual void save( const std::string& name, ci::JsonTree* tree ) const override
