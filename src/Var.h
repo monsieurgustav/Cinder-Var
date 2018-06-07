@@ -44,6 +44,9 @@ namespace cinder {
 		bool isLoaded() const { return mIsLoaded; }
 
 		const VarMap& getItems() const { return mItems; }
+		VarBase * findVar(const std::string & fullName) const;
+		bool findVarName(const VarBase * var, std::string *name, std::string *groupName) const;
+
 	private:
 		JsonBag();
 

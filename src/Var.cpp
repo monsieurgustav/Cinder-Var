@@ -41,6 +41,71 @@ void cinder::JsonBag::addDynamicVarContainer(std::string name, IDynamicVarContai
 	mDynamicVarContainers.emplace(std::move(name), container);
 }
 
+namespace
+{
+	bool splitName(const std::string & name, std::string * group, std::string * var, char separator = '.')
+	{
+		const auto index = name.find(separator);
+		if(index == std::string::npos)
+		{
+			return false;
+		}
+		*group = name.substr(0, index);
+		*var = name.substr(index+1);
+		return true;
+	}
+}
+
+VarBase * JsonBag::findVar(const std::string & fullName) const
+{
+	std::string groupName, varName;
+	if(!splitName(fullName, &groupName, &varName))
+	{
+		CI_LOG_E("cannot parse \"" + fullName + "\". Must be \"group.varName\"");
+		return nullptr;
+	}
+
+	const auto & items = ci::bag().getItems();
+	const auto groupIt = items.find(groupName);
+	if(groupIt == items.end())
+	{
+		CI_LOG_W("group \"" + groupName + "\" not found");
+		return nullptr;
+	}
+
+	const auto varIt = groupIt->second.find(varName);
+	if(varIt == groupIt->second.end())
+	{
+		CI_LOG_W("var \"" + varName + "\" not found in group \"" + groupName + "\"");
+		return nullptr;
+	}
+
+	return varIt->second;
+}
+
+bool JsonBag::findVarName(const VarBase * var, std::string *name, std::string *groupName) const
+{
+	for(const auto & groups : ci::bag().getItems())
+	{
+		for(const auto & vars : groups.second)
+		{
+			if(vars.second == var)
+			{
+				if(groupName)
+				{
+					*groupName = groups.first;
+				}
+				if(name)
+				{
+					*name = vars.first;
+				}
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
 void JsonBag::emplace( VarBase* var, const std::string &name, const std::string groupName )
 {
 	std::lock_guard<std::mutex> lock( mItemsMutex );
