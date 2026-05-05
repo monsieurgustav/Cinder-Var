@@ -170,16 +170,11 @@ void JsonBag::save( const fs::path& path ) const
 			{
 				const auto & name = item.first;
 				const auto & container = item.second;
-				JsonTree objectList = JsonTree::makeArray(name);
+				JsonTree objectList = JsonTree::makeObject(name);
 
 				for(const auto& item : container->getContentForSave())
 				{
-					const auto & typeName = JsonTree {"type", item.typeParams};
-					const auto & name = JsonTree {"name", item.name};
-					JsonTree jsonItem;
-					jsonItem.addChild(typeName);
-					jsonItem.addChild(name);
-					objectList.addChild(jsonItem);
+					objectList.addChild(JsonTree{ item.name, item.typeParams });
 				}
 				root.addChild(objectList);
 			}
@@ -257,8 +252,8 @@ void JsonBag::load( const fs::path & path )
 					std::vector<IDynamicVarContainer::TypeAndName> content;
 					for(const auto & item : dynamic.getChildren())
 					{
-						const auto & typeName = item.hasChild("type") ? item.getValueForKey("type") : std::string();
-						const auto & name = item.getValueForKey("name");
+						const auto & name = item.getKey();
+						const auto& typeName = item.getValue();
 						content.push_back({typeName, name});
 					}
 					container->loadContent(content);
